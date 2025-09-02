@@ -1,0 +1,136 @@
+"use client"
+
+import { Search, Moon, Sun, Menu, User, Globe } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Input } from "@/components/ui/input"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { useTheme } from "next-themes"
+import { useLanguage } from "@/hooks/use-language"
+import { useState, useEffect } from "react"
+
+interface HeaderProps {
+  onSidebarToggle: () => void
+  isSidebarOpen: boolean
+  sidebarCollapsed: boolean
+}
+
+export function Header({ onSidebarToggle, isSidebarOpen, sidebarCollapsed }: HeaderProps) {
+  const { theme, setTheme } = useTheme()
+  const { currentLanguage, languages, changeLanguage } = useLanguage()
+  const [isClient, setIsClient] = useState(false)
+
+  // Simple client check without complex state management
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  return (
+    <header className="header-container fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="header-content flex h-14 items-center px-4 lg:px-6">
+        {/* Mobile menu button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          className="lg:hidden mr-2"
+          onClick={onSidebarToggle}
+        >
+          <Menu className="h-5 w-5" />
+        </Button>
+
+        {/* Logo */}
+        <div className={`flex items-center space-x-2 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-80'}`}>
+          <h1 className="text-xl font-bold">AppDashboard</h1>
+        </div>
+
+        {/* Search - Desktop */}
+        <div className="hidden md:flex flex-1 max-w-md mx-auto">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              className="pl-10 bg-muted/50 border-0"
+            />
+          </div>
+        </div>
+
+        {/* Right side buttons */}
+        <div className="flex items-center space-x-2 ml-auto">
+          {/* Search - Mobile */}
+          <Button variant="ghost" size="icon" className="md:hidden">
+            <Search className="h-5 w-5" />
+          </Button>
+
+          {/* Language selector - always show placeholder, enhance when client ready */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="transition-all duration-300 ease-in-out"
+                disabled={!isClient}
+              >
+                <Globe className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            {isClient && (
+              <DropdownMenuContent align="end" className="w-48">
+                {(languages || []).map((language) => (
+                  <DropdownMenuItem
+                    key={language.code}
+                    onClick={() => changeLanguage?.(language.code)}
+                    className="flex items-center gap-2 cursor-pointer"
+                  >
+                    <span className="text-lg">{language.flag}</span>
+                    <span className="flex-1">{language.name}</span>
+                    {currentLanguage === language.code && (
+                      <div className="w-2 h-2 bg-primary rounded-full" />
+                    )}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            )}
+          </DropdownMenu>
+
+          {/* Theme toggle - always visible with fallback */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setTheme?.(theme === "dark" ? "light" : "dark")}
+            className="transition-all duration-300 ease-in-out"
+          >
+            <div className="relative w-5 h-5">
+              {isClient ? (
+                <>
+                  <Sun className={`absolute h-5 w-5 transition-all duration-300 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                  <Moon className={`absolute h-5 w-5 transition-all duration-300 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
+                </>
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </div>
+          </Button>
+
+          {/* Auth buttons */}
+          <div className="hidden sm:flex items-center space-x-2">
+            <Button variant="outline" size="sm">
+              Register
+            </Button>
+            <Button size="sm">
+              Sign In
+            </Button>
+          </div>
+
+          {/* Mobile user menu */}
+          <Button variant="ghost" size="icon" className="sm:hidden">
+            <User className="h-5 w-5" />
+          </Button>
+        </div>
+      </div>
+    </header>
+  )
+}

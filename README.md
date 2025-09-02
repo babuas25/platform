@@ -78,7 +78,7 @@ A responsive, modern dashboard application built with Next.js 15.5.2, featuring 
 - Dark/Light theme toggle
 - Responsive design with mobile menu
 
-### Sidebar (80px collapsed, 320px expanded)
+### Sidebar (80px collapsed, 256px expanded)
 - Smooth collapse/expand animations
 - Navigation with icons and labels
 - Submenu support for Services

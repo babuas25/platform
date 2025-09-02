@@ -73,6 +73,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
     setActiveSubmenu(activeSubmenu === title ? null : title)
   }
 
+  // On mobile (lg:hidden), always show expanded view when sidebar is open
+  // On desktop (lg:static), respect the isCollapsed state  
+  const shouldShowText = !isCollapsed || isOpen
+
   return (
     <>
       {/* Overlay for mobile */}
@@ -87,24 +91,30 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
       <aside
         className={cn(
           "fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transform border-r bg-background transition-all duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 box-border",
-          isCollapsed ? "w-[81px]" : "w-80",
+          // On mobile, always use full width when open. On desktop, respect isCollapsed state
+          "w-64 lg:w-auto",
+          isCollapsed && "lg:w-[81px]",
+          !isCollapsed && "lg:w-64",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
         <div className="flex h-full flex-col">
           {/* Sidebar header */}
-          <div className="p-2 border-b flex items-center justify-between h-14">
-            {!isCollapsed && <h2 className="text-lg font-semibold">AppDashboard</h2>}
+          <div className={cn(
+            "p-2 border-b h-14",
+            shouldShowText ? "flex items-center justify-between" : "flex items-center justify-center"
+          )}>
+            {shouldShowText && <h2 className="text-lg font-nordique-pro font-semibold">AppDashboard</h2>}
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggleCollapse}
-              className="hidden lg:flex h-10 w-10 ml-auto"
+              className="hidden lg:flex shrink-0"
             >
               {isCollapsed ? (
-                <ChevronRight className="h-6 w-6" />
+                <ChevronRight className="h-5 w-5" />
               ) : (
-                <ChevronLeft className="h-6 w-6" />
+                <ChevronLeft className="h-5 w-5" />
               )}
             </Button>
           </div>
@@ -116,7 +126,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                 <li key={item.title}>
                   {item.hasSubmenu ? (
                     <Collapsible
-                      open={!isCollapsed && activeSubmenu === item.title}
+                      open={shouldShowText && activeSubmenu === item.title}
                       onOpenChange={() => toggleSubmenu(item.title)}
                     >
                       <CollapsibleTrigger asChild>
@@ -124,23 +134,23 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                           variant="ghost"
                           className={cn(
                             "w-full hover:bg-accent",
-                            isCollapsed ? "justify-center px-2" : "justify-start text-left"
+                            shouldShowText ? "justify-start text-left" : "justify-center px-2"
                           )}
                         >
-                          <item.icon className={cn("h-4 w-4", !isCollapsed && "mr-3")} />
-                          {!isCollapsed && (
+                          <item.icon className={cn("h-4 w-4", shouldShowText && "mr-3")} />
+                          {shouldShowText && (
                             <>
                               <span className="flex-1">{item.title}</span>
                               {activeSubmenu === item.title ? (
-                                <ChevronDown className="h-6 w-6 ml-auto" />
+                                <ChevronDown className="h-5 w-5 ml-auto" />
                               ) : (
-                                <ChevronRight className="h-6 w-6 ml-auto" />
+                                <ChevronRight className="h-5 w-5 ml-auto" />
                               )}
                             </>
                           )}
                         </Button>
                       </CollapsibleTrigger>
-                      <CollapsibleContent className={cn("space-y-1 mt-1", !isCollapsed && "ml-7")}>
+                      <CollapsibleContent className={cn("space-y-1 mt-1", shouldShowText && "ml-7")}>
                         {item.submenuItems?.map((subItem) => (
                           <Button
                             key={subItem.title}
@@ -148,10 +158,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                             size="sm"
                             className={cn(
                               "w-full text-sm text-muted-foreground hover:text-foreground",
-                              isCollapsed ? "justify-center px-2" : "justify-start"
+                              shouldShowText ? "justify-start" : "justify-center px-2"
                             )}
                           >
-                            {isCollapsed ? subItem.title.charAt(0) : subItem.title}
+                            {shouldShowText ? subItem.title : subItem.title.charAt(0)}
                           </Button>
                         ))}
                       </CollapsibleContent>
@@ -161,11 +171,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                       variant="ghost"
                       className={cn(
                         "w-full hover:bg-accent",
-                        isCollapsed ? "justify-center px-2" : "justify-start"
+                        shouldShowText ? "justify-start" : "justify-center px-2"
                       )}
                     >
-                      <item.icon className={cn("h-4 w-4", !isCollapsed && "mr-3")} />
-                      {!isCollapsed && item.title}
+                      <item.icon className={cn("h-4 w-4", shouldShowText && "mr-3")} />
+                      {shouldShowText && item.title}
                     </Button>
                   )}
                 </li>
@@ -174,7 +184,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
           </nav>
 
           {/* Sidebar footer */}
-          {!isCollapsed && (
+          {shouldShowText && (
             <div className="p-4 border-t">
               <p className="text-sm text-muted-foreground">
                 Welcome! Please sign in to access more features.

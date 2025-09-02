@@ -36,7 +36,7 @@ export function MainLayout({ children }: MainLayoutProps) {
         />
         
         {/* Main content */}
-        <main className={`flex-1 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-80'}`}>
+        <main className={`flex-1 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-64'}`}>
           <div className="p-6 transition-all duration-300 ease-in-out">
             {children}
           </div>

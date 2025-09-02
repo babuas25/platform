@@ -43,8 +43,8 @@ export function Header({ onSidebarToggle, isSidebarOpen, sidebarCollapsed }: Hea
         </Button>
 
         {/* Logo */}
-        <div className={`flex items-center space-x-2 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-80'}`}>
-          <h1 className="text-xl font-bold">AppDashboard</h1>
+        <div className={`flex items-center space-x-2 transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-64'}`}>
+          <h1 className="text-xl font-nordique-pro font-semibold">AppDashboard</h1>
         </div>
 
         {/* Search - Desktop */}
@@ -120,7 +120,7 @@ export function Header({ onSidebarToggle, isSidebarOpen, sidebarCollapsed }: Hea
             <Button variant="outline" size="sm">
               Register
             </Button>
-            <Button size="sm">
+            <Button variant="outline" size="sm">
               Sign In
             </Button>
           </div>

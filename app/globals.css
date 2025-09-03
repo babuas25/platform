@@ -2,20 +2,6 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
 @layer base {
   :root {
     --background: 0 0% 100%;
@@ -77,12 +63,43 @@
   * {
     @apply border-border;
   }
+  
+  html {
+    scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
   body {
     @apply bg-background text-foreground;
+    overflow-x: hidden;
+    margin: 0;
+    position: relative;
   }
 }
 
-/* Custom scrollbar for sidebar */
+/* Critical Layout Styles */
+.header-container {
+  position: fixed !important;
+  top: 0;
+  left: 0;
+  right: 0;
+  width: 100vw;
+  z-index: 1000;
+  height: 3.5rem;
+  will-change: auto;
+}
+
+.header-content {
+  height: 3.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 1rem;
+  box-sizing: border-box;
+}
+
+/* Optimized Scrollbar */
 .sidebar-scroll::-webkit-scrollbar {
   width: 4px;
 }
@@ -100,89 +117,20 @@
   background: hsl(var(--foreground));
 }
 
-/* Smooth transitions */
+/* Performance-optimized transitions */
 * {
   transition-property: color, background-color, border-color, text-decoration-color, fill, stroke, opacity, transform;
   transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-  transition-duration: 300ms;
+  transition-duration: 200ms;
 }
 
-/* Prevent layout shifts */
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  overflow-x: hidden;
-  /* Remove default margin that could cause shifts */
-  margin: 0;
-  /* Ensure consistent positioning */
-  position: relative;
-}
-
-/* Header container positioning */
-.header-container {
-  position: fixed !important;
-  top: 0;
-  left: 0;
-  right: 0;
-  width: 100vw;
-  z-index: 1000;
-  /* Prevent any content shifts */
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  height: 3.5rem;
-}
-
-/* Header content styling */
-.header-content {
-  height: 3.5rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 1rem;
-  box-sizing: border-box;
-}
-
-/* Adjust main content to account for fixed header */
-main {
-  margin-top: 0;
-  padding-top: 0;
-}
-
-
-
-/* Prevent flickering on theme changes */
-.theme-transition {
-  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1) !important;
-}
-
-/* Smooth loading animations */
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+/* Reduce motion for users who prefer it */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-.fade-in {
-  animation: fadeIn 300ms ease-in-out;
-}
-
-/* Skeleton pulse animation refinement */
-@keyframes pulse {
-  0%, 100% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.5;
-  }
-}
-
-.animate-pulse {
-  animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

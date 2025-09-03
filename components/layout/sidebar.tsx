@@ -91,10 +91,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
       <aside
         className={cn(
           "fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transform border-r bg-background transition-all duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 box-border",
-          // On mobile, always use full width when open. On desktop, respect isCollapsed state
-          "w-64 lg:w-auto",
-          isCollapsed && "lg:w-[81px]",
-          !isCollapsed && "lg:w-64",
+          // On mobile, always use full width when open. On desktop, respect isCollapsed state  
+          "w-[256px] lg:w-auto",
+          isCollapsed && "lg:w-[80px]",
+          !isCollapsed && "lg:w-[256px]",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
@@ -102,14 +102,14 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
           {/* Sidebar header */}
           <div className={cn(
             "p-2 border-b h-14",
-            shouldShowText ? "flex items-center justify-between" : "flex items-center justify-center"
+            shouldShowText ? "flex items-center justify-center" : "flex items-center justify-center"
           )}>
-            {shouldShowText && <h2 className="text-lg font-nordique-pro font-semibold">AppDashboard</h2>}
+            {shouldShowText && <h2 className="text-lg font-bold font-nordique-pro w-full text-center">AppDashboard</h2>}
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggleCollapse}
-              className="hidden lg:flex shrink-0"
+              className="hidden lg:flex shrink-0 absolute right-2"
             >
               {isCollapsed ? (
                 <ChevronRight className="h-5 w-5" />

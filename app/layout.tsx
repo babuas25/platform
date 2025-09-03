@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/providers/theme-provider';
 
 // Nordique Pro Semibold font for logo
 const nordiquePro = localFont({
-  src: '../public/fonts/nordiquepro-semibold.ttf',
+  src: '../public/fonts/nordiquepro-semibold.otf',
   variable: '--font-nordique-pro',
   display: 'swap',
   fallback: ['serif'],
@@ -68,9 +68,9 @@ export default function RootLayout({
         {/* Preload Nordique Pro font for better performance */}
         <link
           rel="preload"
-          href="/fonts/nordiquepro-semibold.ttf"
+          href="/fonts/nordiquepro-semibold.otf"
           as="font"
-          type="font/ttf"
+          type="font/otf"
           crossOrigin="anonymous"
         />
       </head>

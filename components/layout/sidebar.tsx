@@ -90,10 +90,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transform border-r bg-background transition-all duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 box-border",
+          "fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transform border-r bg-background transition-[width,transform] duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 box-border",
           // On mobile, always use full width when open. On desktop, respect isCollapsed state  
           "w-[256px] lg:w-auto",
-          isCollapsed && "lg:w-[80px]",
+          isCollapsed && "lg:w-[81px]",
           !isCollapsed && "lg:w-[256px]",
           isOpen ? "translate-x-0" : "-translate-x-full"
         )}
@@ -101,15 +101,19 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
         <div className="flex h-full flex-col">
           {/* Sidebar header */}
           <div className={cn(
-            "p-2 border-b h-14",
-            shouldShowText ? "flex items-center justify-center" : "flex items-center justify-center"
+            "border-b h-14 flex items-center justify-center relative",
+            shouldShowText ? "px-4" : ""
           )}>
-            {shouldShowText && <h2 className="text-lg font-bold font-nordique-pro w-full text-center">AppDashboard</h2>}
+            {shouldShowText && (
+              <h2 className="font-bold font-nordique-pro text-center leading-none flex items-center w-24 h-[18px] text-sm">
+                AppDashboard
+              </h2>
+            )}
             <Button
               variant="ghost"
               size="icon"
               onClick={onToggleCollapse}
-              className="hidden lg:flex shrink-0 absolute right-2"
+              className="hidden lg:flex shrink-0 absolute right-2 h-10 w-10 items-center justify-center"
             >
               {isCollapsed ? (
                 <ChevronRight className="h-5 w-5" />

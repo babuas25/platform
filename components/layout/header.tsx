@@ -1,6 +1,6 @@
 "use client"
 
-import { Search, Moon, Sun, Menu, User, Globe } from "lucide-react"
+import { Search, Moon, Sun, Menu, User, Globe, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -23,6 +23,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
   const { theme, setTheme } = useTheme()
   const { currentLanguage, languages, changeLanguage } = useLanguage()
   const [isClient, setIsClient] = useState(false)
+  const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
 
   // Simple client check without complex state management
   useEffect(() => {
@@ -33,9 +34,14 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
     setTheme?.(theme === "dark" ? "light" : "dark")
   }, [theme, setTheme])
 
+  const toggleMobileSearch = useCallback(() => {
+    setIsMobileSearchOpen(prev => !prev)
+  }, [])
+
   return (
-    <header className="header-container fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="header-content relative flex h-14 items-center justify-between px-4 lg:px-6">
+    <>
+      <header className="header-container fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="header-content relative flex h-14 items-center justify-between px-4 lg:px-6">
         {/* Mobile menu button */}
         <Button
           variant="ghost"
@@ -47,8 +53,8 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
         </Button>
 
         {/* Logo */}
-        <div className={`flex items-center transition-all duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[80px]' : 'lg:ml-[256px]'}`}>
-          <h1 className="text-xl font-bold font-nordique-pro">AppDashboard</h1>
+        <div className={`flex items-center transition-[margin] duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-[256px]'}`}>
+          <h1 className="font-bold font-nordique-pro w-[118px] h-6 flex items-center text-base leading-none">AppDashboard</h1>
         </div>
 
         {/* Search - Desktop */}
@@ -65,7 +71,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
         {/* Right side buttons */}
         <div className="flex items-center space-x-2 ml-auto z-10">
           {/* Search - Mobile */}
-          <Button variant="ghost" size="icon" className="md:hidden">
+          <Button variant="ghost" size="icon" className="md:hidden" onClick={toggleMobileSearch}>
             <Search className="h-5 w-5" />
           </Button>
 
@@ -75,7 +81,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
               <Button 
                 variant="ghost" 
                 size="icon"
-                className="transition-all duration-300 ease-in-out"
+                className="transition-opacity duration-300 ease-in-out"
                 disabled={!isClient}
               >
                 <Globe className="h-5 w-5" />
@@ -105,14 +111,14 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             variant="ghost"
             size="icon"
             onClick={handleThemeToggle}
-            className="transition-all duration-200 ease-in-out"
+            className="transition-transform duration-200 ease-in-out"
             aria-label="Toggle theme"
           >
             <div className="relative w-5 h-5">
               {isClient ? (
                 <>
-                  <Sun className={`absolute h-5 w-5 transition-all duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-                  <Moon className={`absolute h-5 w-5 transition-all duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
+                  <Sun className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                  <Moon className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
                 </>
               ) : (
                 <Sun className="h-5 w-5" />
@@ -137,6 +143,31 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
         </div>
       </div>
     </header>
+
+    {/* Mobile Search Dropdown - Optimized */}
+    {isMobileSearchOpen && (
+      <div className="fixed top-14 left-0 right-0 z-[60] bg-background border-b shadow-md md:hidden">
+        <div className="p-3">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search..."
+              className="pl-10 pr-10 bg-muted/50 border-0 h-9"
+              autoFocus
+            />
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              className="absolute right-0 top-0 h-9 w-9 flex items-center justify-center"
+              onClick={toggleMobileSearch}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   )
 })
 

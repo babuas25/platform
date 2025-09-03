@@ -3,12 +3,14 @@
 import { useState } from "react"
 import { Header } from "./header"
 import { Sidebar } from "./sidebar"
+import { cn } from "@/lib/utils"
 
 interface MainLayoutProps {
   children: React.ReactNode
+  contentClassName?: string
 }
 
-export function MainLayout({ children }: MainLayoutProps) {
+export function MainLayout({ children, contentClassName }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
 
@@ -36,8 +38,8 @@ export function MainLayout({ children }: MainLayoutProps) {
         />
         
         {/* Main content */}
-        <main className={`flex-1 transition-[margin] duration-300 ease-in-out ${sidebarCollapsed ? '' : 'lg:ml-[256px]'}`}>
-          <div className="p-6">
+        <main className={`flex-1`}>
+          <div className={cn("p-6", contentClassName)}>
             {children}
           </div>
         </main>

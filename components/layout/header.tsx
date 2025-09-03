@@ -12,6 +12,7 @@ import {
 import { useTheme } from "next-themes"
 import { useLanguage } from "@/hooks/use-language"
 import { useState, useEffect, memo, useCallback } from "react"
+import Link from "next/link"
 
 interface HeaderProps {
   onSidebarToggle: () => void
@@ -53,7 +54,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
         </Button>
 
         {/* Logo */}
-        <div className={`flex items-center transition-[margin] duration-300 ease-in-out ${sidebarCollapsed ? 'lg:ml-[81px]' : 'lg:ml-[256px]'}`}>
+        <div className={`flex items-center`}>
           <h1 className="font-bold font-nordique-pro w-[118px] h-6 flex items-center text-base leading-none">AppDashboard</h1>
         </div>
 
@@ -128,11 +129,11 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
 
           {/* Auth buttons */}
           <div className="hidden sm:flex items-center space-x-2">
-            <Button variant="outline" size="sm">
-              Register
+            <Button asChild variant="outline" size="sm">
+              <Link href="/auth?mode=register">Register</Link>
             </Button>
-            <Button variant="outline" size="sm">
-              Sign In
+            <Button asChild variant="outline" size="sm">
+              <Link href="/auth?mode=sign-in">Sign In</Link>
             </Button>
           </div>
 

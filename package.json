@@ -49,6 +49,7 @@
     "embla-carousel-react": "^8.3.0",
     "eslint": "^9.15.0",
     "eslint-config-next": "^15.0.3",
+    "firebase": "^12.2.1",
     "geist": "^1.4.2",
     "input-otp": "^1.2.4",
     "lucide-react": "^0.446.0",

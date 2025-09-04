@@ -12,9 +12,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { MainLayout } from "@/components/layout/main-layout"
+import { auth, googleProvider } from "@/lib/firebase"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth"
 
 export default function AuthPage() {
   const [dob, setDob] = useState<Date | undefined>()
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   return (
     <MainLayout contentClassName="p-0">
@@ -53,10 +59,25 @@ export default function AuthPage() {
                   <TabsContent value="signin" className="space-y-4 mt-6">
                     <div className="grid gap-4">
                       <div className="grid gap-2">
-                        <Input id="email" type="email" placeholder="name@example.com" />
+                        <Label htmlFor="signin-email">Email</Label>
+                        <Input id="signin-email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                       </div>
-                      <Button className="w-full">
-                        Sign In with Email
+                      <div className="grid gap-2">
+                        <Label htmlFor="signin-password">Password</Label>
+                        <Input id="signin-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
+                      </div>
+                      <Button className="w-full" disabled={loading} onClick={async () => {
+                        try {
+                          setError(null)
+                          setLoading(true)
+                          await signInWithEmailAndPassword(auth, email, password)
+                        } catch (e: any) {
+                          setError(e?.message || "Failed to sign in")
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}>
+                        {loading ? "Signing in..." : "Sign In with Email"}
                       </Button>
                       <div className="relative my-2">
                         <Separator />
@@ -65,7 +86,14 @@ export default function AuthPage() {
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" className="w-full justify-center">
+                        <Button variant="outline" className="w-full justify-center" onClick={async () => {
+                          try {
+                            setError(null)
+                            await signInWithPopup(auth, googleProvider)
+                          } catch (e: any) {
+                            setError(e?.message || "Google sign-in failed")
+                          }
+                        }}>
                           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                             <path
                               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
@@ -93,6 +121,7 @@ export default function AuthPage() {
                           Facebook
                         </Button>
                       </div>
+                      {error && <p className="text-xs text-red-500">{error}</p>}
                     </div>
                   </TabsContent>
 
@@ -165,11 +194,21 @@ export default function AuthPage() {
                         </div>
                       </div>
                       <div className="grid gap-2">
-                        <Label htmlFor="password">Password</Label>
-                        <Input id="password" type="password" placeholder="••••••••" />
+                        <Label htmlFor="register-password">Password</Label>
+                        <Input id="register-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
                       </div>
-                      <Button className="w-full">
-                        Create Account
+                      <Button className="w-full" disabled={loading} onClick={async () => {
+                        try {
+                          setError(null)
+                          setLoading(true)
+                          await createUserWithEmailAndPassword(auth, email, password)
+                        } catch (e: any) {
+                          setError(e?.message || "Registration failed")
+                        } finally {
+                          setLoading(false)
+                        }
+                      }}>
+                        {loading ? "Creating account..." : "Create Account"}
                       </Button>
                       <div className="relative my-2">
                         <Separator />
@@ -206,6 +245,7 @@ export default function AuthPage() {
                           Facebook
                         </Button>
                       </div>
+                      {error && <p className="text-xs text-red-500">{error}</p>}
                     </div>
                   </TabsContent>
                 </Tabs>

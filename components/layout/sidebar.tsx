@@ -13,6 +13,7 @@ import {
   ChevronLeft
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 
@@ -164,8 +165,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                               "w-full text-sm text-muted-foreground hover:text-foreground",
                               shouldShowText ? "justify-start" : "justify-center px-2"
                             )}
+                            asChild
                           >
-                            {shouldShowText ? subItem.title : subItem.title.charAt(0)}
+                            <Link href={subItem.href} onClick={onClose}>
+                              {shouldShowText ? subItem.title : subItem.title.charAt(0)}
+                            </Link>
                           </Button>
                         ))}
                       </CollapsibleContent>
@@ -177,9 +181,12 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
                         "w-full hover:bg-accent",
                         shouldShowText ? "justify-start" : "justify-center px-2"
                       )}
+                      asChild
                     >
-                      <item.icon className={cn("h-4 w-4", shouldShowText && "mr-3")} />
-                      {shouldShowText && item.title}
+                      <Link href={item.href} onClick={onClose} className="flex items-center w-full">
+                        <item.icon className={cn("h-4 w-4", shouldShowText && "mr-3")} />
+                        {shouldShowText && item.title}
+                      </Link>
                     </Button>
                   )}
                 </li>

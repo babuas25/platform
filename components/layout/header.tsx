@@ -127,8 +127,8 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             </div>
           </Button>
 
-          {/* Auth buttons */}
-          <div className="hidden sm:flex items-center space-x-2">
+          {/* Auth buttons - show on md and up */}
+          <div className="hidden md:flex items-center space-x-2">
             <Button asChild variant="outline" size="sm">
               <Link href="/auth?mode=register">Register</Link>
             </Button>
@@ -137,10 +137,22 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             </Button>
           </div>
 
-          {/* Mobile user menu */}
-          <Button variant="ghost" size="icon" className="sm:hidden">
-            <User className="h-5 w-5" />
-          </Button>
+          {/* Mobile user menu - show below md */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
+                <User className="h-5 w-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-44 md:hidden">
+              <DropdownMenuItem asChild>
+                <Link href="/auth?mode=sign-in">Sign In</Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/auth?mode=register">Registration</Link>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
     </header>

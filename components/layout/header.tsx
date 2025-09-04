@@ -14,8 +14,7 @@ import { useTheme } from "next-themes"
 import { useLanguage } from "@/hooks/use-language"
 import { useState, useEffect, memo, useCallback } from "react"
 import Link from "next/link"
-import { onAuthStateChanged, signOut } from "firebase/auth"
-import { auth } from "@/lib/firebase"
+import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
 interface HeaderProps {
@@ -29,7 +28,8 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
   const { currentLanguage, languages, changeLanguage } = useLanguage()
   const [isClient, setIsClient] = useState(false)
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
-  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const { data: session, status } = useSession()
+
   const router = useRouter()
 
   // Simple client check without complex state management
@@ -37,13 +37,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
     setIsClient(true)
   }, [])
 
-  // Observe Firebase auth state to toggle UI
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      setUserEmail(user?.email ?? null)
-    })
-    return () => unsub()
-  }, [])
+  // NextAuth session is provided by SessionProvider; no manual subscription needed
 
   const handleThemeToggle = useCallback(() => {
     setTheme?.(theme === "dark" ? "light" : "dark")
@@ -143,12 +137,15 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
 
           {/* Auth buttons or user menu - desktop */}
           <div className="hidden md:flex items-center space-x-2">
-            {userEmail ? (
+            {status === 'loading' ? (
+              // Avoid UI flicker while session is loading
+              <div className="w-[120px] h-7" />
+            ) : (session?.user?.email) ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="px-2">
                     <Avatar className="h-7 w-7">
-                      <AvatarFallback>{userEmail.charAt(0).toUpperCase()}</AvatarFallback>
+                      <AvatarFallback>{(session.user.email || session.user.name || "U").charAt(0).toUpperCase()}</AvatarFallback>
                     </Avatar>
                   </Button>
                 </DropdownMenuTrigger>
@@ -156,7 +153,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => { await signOut(auth); router.replace('/auth') }}>
+                  <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
                     Sign out
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -181,12 +178,14 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44 md:hidden">
-              {userEmail ? (
+              {status === 'loading' ? (
+                <></>
+              ) : (session?.user?.email) ? (
                 <>
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => { await signOut(auth); router.replace('/auth') }}>
+                  <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
                     Sign out
                   </DropdownMenuItem>
                 </>

@@ -2,7 +2,8 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { useRouter, useSearchParams, usePathname } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
+import { signIn, useSession } from "next-auth/react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -13,8 +14,6 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { MainLayout } from "@/components/layout/main-layout"
-import { auth, googleProvider, facebookProvider } from "@/lib/firebase"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithRedirect, getRedirectResult, onAuthStateChanged, signInWithPopup } from "firebase/auth"
 
 export default function AuthPage() {
   const [dob, setDob] = useState<Date | undefined>()
@@ -22,102 +21,27 @@ export default function AuthPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [isSignedIn, setIsSignedIn] = useState(false)
+  const { data: session, status } = useSession()
   const router = useRouter()
   const searchParams = useSearchParams()
-  const pathname = usePathname()
-  const [redirectChecked, setRedirectChecked] = useState(false)
-  const [needsPopupCompletion, setNeedsPopupCompletion] = useState(false)
 
-  // Decide which flow to use based on environment and hostname
-  const shouldUsePopup = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
-
-  // Centralized Google sign-in starter
+  // NextAuth sign-in helpers
   const startGoogleSignIn = async () => {
     setError(null)
-    try { if (typeof window !== 'undefined') sessionStorage.setItem('oauthFlow', '1') } catch {}
-    if (shouldUsePopup) {
-      console.log('AuthPage: Starting Google sign-in via POPUP (dev).')
-      const res = await signInWithPopup(auth, googleProvider)
-      console.log('AuthPage: Popup sign-in result', res)
-      // Routing will be handled by onAuthStateChanged/fallback below
-    } else {
-      console.log('AuthPage: Starting Google sign-in via REDIRECT (prod).')
-      await signInWithRedirect(auth, googleProvider)
-    }
+    await signIn('google', { callbackUrl: '/dashboard' })
   }
 
-  // Handle OAuth redirect results and initial auth state
+  // Redirect away if session is authenticated
   useEffect(() => {
-    try {
-      // Log firebase app options to ensure correct project/domain at runtime
-      // Note: values are non-secret and help diagnose domain/config mismatches
-      // @ts-ignore - options is available on app
-      const opts = (auth as any)?.app?.options || {}
-      console.log('AuthPage: Firebase app options', { authDomain: opts.authDomain, projectId: opts.projectId })
-    } catch {}
-    console.log('AuthPage: Checking for redirect result...');
-    (async () => {
-      let redirectResult: any = null
-      try {
-        redirectResult = await getRedirectResult(auth)
-        console.log('AuthPage: getRedirectResult finished.', redirectResult);
-        if (redirectResult?.user) {
-          try { if (typeof window !== 'undefined') sessionStorage.removeItem('oauthFlow') } catch {}
-          const next = searchParams?.get('next') || '/dashboard'
-          console.log('AuthPage: Redirecting after Google to', next)
-          router.replace(next)
-        }
-      } catch (e: any) {
-        console.error('AuthPage: getRedirectResult error', e)
-        setError(e?.message || "Google sign-in failed")
-      } finally {
-        // Even if result is null, mark that we've checked; fallback can proceed
-        try {
-          if (typeof window !== 'undefined') {
-            const flag = sessionStorage.getItem('oauthFlow')
-            console.log('AuthPage: oauthFlow flag on return =', flag)
-            if (flag && !redirectResult?.user) {
-              // On dev/localhost, redirect is often blocked; show popup completion banner
-              if (shouldUsePopup) setNeedsPopupCompletion(true)
-            }
-          }
-        } catch {}
-        setRedirectChecked(true)
-      }
-    })()
-  }, [router, searchParams])
-
-  // Listen for auth state changes
-  useEffect(() => {
-    console.log('AuthPage: Subscribing to onAuthStateChanged.');
-    const unsub = onAuthStateChanged(auth, (user) => {
-      console.log('AuthPage: onAuthStateChanged fired. User:', user);
-      if (user) {
-        console.log('AuthPage: User is present. Setting isSignedIn to true.');
-        setIsSignedIn(true)
-      } else {
-        console.log('AuthPage: User is null. Setting isSignedIn to false.');
-        setIsSignedIn(false)
-      }
-    })
-    return () => {
-      console.log('AuthPage: Unsubscribing from onAuthStateChanged.');
-      unsub();
-    }
-  }, [])
-
-  // Fallback: if user is signed in but getRedirectResult was null, still navigate away from /auth
-  useEffect(() => {
-    if (!redirectChecked) return
-    if (!isSignedIn) return
-    // Only redirect if we're currently on /auth
-    if (pathname && pathname.startsWith('/auth')) {
+    if (status === 'authenticated') {
       const next = searchParams?.get('next') || '/dashboard'
-      console.log('AuthPage: Fallback redirect to', next)
       router.replace(next)
     }
-  }, [redirectChecked, isSignedIn, pathname, router, searchParams])
+  }, [status, router, searchParams])
+
+  // No-op: NextAuth handles session state via SessionProvider
+
+  // Fallback redirect handled by status effect above
 
   return (
     <MainLayout contentClassName="p-0">
@@ -146,7 +70,7 @@ export default function AuthPage() {
                   </p>
                 </div>
 
-                {isSignedIn ? (
+                {status === 'authenticated' ? (
                   <div className="text-center space-y-4">
                     <p className="text-green-600 font-medium">You have successfully signed in.</p>
                     <Button onClick={() => router.push('/dashboard')}>
@@ -167,23 +91,7 @@ export default function AuthPage() {
                         <Label htmlFor="signin-email">Email</Label>
                         <Input id="signin-email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                       </div>
-                      {process.env.NODE_ENV !== 'production' && (
-                        <div className="mt-2 text-center">
-                          <button className="text-xs underline" onClick={async () => {
-                            try {
-                              setError(null)
-                              console.log('AuthPage[Debug]: Testing Google sign-in via POPUP...')
-                              const res = await signInWithPopup(auth, googleProvider)
-                              console.log('AuthPage[Debug]: Popup result', res)
-                            } catch (e: any) {
-                              console.error('AuthPage[Debug]: Popup error', e)
-                              setError(e?.message || 'Popup failed')
-                            }
-                          }}>
-                            Debug: Google Popup (temp)
-                          </button>
-                        </div>
-                      )}
+                      {null}
                       <div className="grid gap-2">
                         <Label htmlFor="signin-password">Password</Label>
                         <Input id="signin-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -192,8 +100,7 @@ export default function AuthPage() {
                         try {
                           setError(null)
                           setLoading(true)
-                          await signInWithEmailAndPassword(auth, email, password)
-                          router.replace("/dashboard")
+                          await signIn('credentials', { email, password, callbackUrl: '/dashboard' })
                         } catch (e: any) {
                           setError(e?.message || "Failed to sign in")
                         } finally {
@@ -208,23 +115,7 @@ export default function AuthPage() {
                           Or continue with
                         </span>
                       </div>
-                      {needsPopupCompletion && (
-                        <div className="rounded border border-yellow-400 bg-yellow-50 text-yellow-900 p-2 text-xs">
-                          Google redirect couldn’t complete in this browser. Click Continue to finish sign-in via popup.
-                          <div className="mt-2">
-                            <Button size="sm" onClick={async () => {
-                              try {
-                                setError(null)
-                                setNeedsPopupCompletion(false)
-                                await startGoogleSignIn()
-                              } catch (e: any) {
-                                console.error('AuthPage: Popup completion error', e)
-                                setError(e?.message || 'Failed to complete sign-in')
-                              }
-                            }}>Continue</Button>
-                          </div>
-                        </div>
-                      )}
+                      {null}
                       <div className="grid grid-cols-2 gap-2">
                         <Button variant="outline" className="w-full justify-center" onClick={async () => {
                           try {
@@ -256,7 +147,7 @@ export default function AuthPage() {
                         <Button variant="outline" className="w-full justify-center" onClick={async () => {
                           try {
                             setError(null)
-                            await signInWithRedirect(auth, facebookProvider)
+                            await signIn('facebook', { callbackUrl: '/dashboard' })
                           } catch (e: any) {
                             setError(e?.message || "Facebook sign-in failed")
                           }
@@ -347,8 +238,10 @@ export default function AuthPage() {
                         try {
                           setError(null)
                           setLoading(true)
-                          await createUserWithEmailAndPassword(auth, email, password)
-                          router.replace("/dashboard")
+                          const res = await fetch('/api/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) })
+                          const data = await res.json()
+                          if (!res.ok) throw new Error(data?.error || 'Registration failed')
+                          await signIn('credentials', { email, password, callbackUrl: '/dashboard' })
                         } catch (e: any) {
                           setError(e?.message || "Registration failed")
                         } finally {
@@ -367,8 +260,7 @@ export default function AuthPage() {
                         <Button variant="outline" className="w-full justify-center" onClick={async () => {
                           try {
                             setError(null)
-                            try { if (typeof window !== 'undefined') sessionStorage.setItem('oauthFlow', '1') } catch {}
-                            await signInWithRedirect(auth, googleProvider)
+                            await signIn('google', { callbackUrl: '/dashboard' })
                           } catch (e: any) {
                             setError(e?.message || "Google sign-in failed")
                           }
@@ -393,7 +285,14 @@ export default function AuthPage() {
                           </svg>
                           Google
                         </Button>
-                        <Button variant="outline" className="w-full justify-center">
+                        <Button variant="outline" className="w-full justify-center" onClick={async () => {
+                          try {
+                            setError(null)
+                            await signIn('facebook', { callbackUrl: '/dashboard' })
+                          } catch (e: any) {
+                            setError(e?.message || "Facebook sign-in failed")
+                          }
+                        }}>
                           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="#1877F2">
                             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                           </svg>

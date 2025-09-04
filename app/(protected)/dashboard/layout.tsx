@@ -13,6 +13,14 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
+      const oauthFlow = typeof window !== 'undefined' ? sessionStorage.getItem('oauthFlow') : null
+      // During OAuth flow return, user can be temporarily null. Avoid redirecting in that case.
+      if (!user && oauthFlow) {
+        // Stay in checking state to prevent a flicker/redirect loop
+        setIsChecking(true)
+        setIsAuthed(false)
+        return
+      }
       if (user) {
         setIsAuthed(true)
         setIsChecking(false)

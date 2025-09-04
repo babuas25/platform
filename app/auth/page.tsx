@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams, usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -22,33 +22,102 @@ export default function AuthPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [isSignedIn, setIsSignedIn] = useState(false)
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const pathname = usePathname()
+  const [redirectChecked, setRedirectChecked] = useState(false)
+  const [needsPopupCompletion, setNeedsPopupCompletion] = useState(false)
 
-  // Handle OAuth redirect results (e.g., Google sign-in)
+  // Decide which flow to use based on environment and hostname
+  const shouldUsePopup = typeof window !== 'undefined' && ['localhost', '127.0.0.1'].includes(window.location.hostname)
+
+  // Centralized Google sign-in starter
+  const startGoogleSignIn = async () => {
+    setError(null)
+    try { if (typeof window !== 'undefined') sessionStorage.setItem('oauthFlow', '1') } catch {}
+    if (shouldUsePopup) {
+      console.log('AuthPage: Starting Google sign-in via POPUP (dev).')
+      const res = await signInWithPopup(auth, googleProvider)
+      console.log('AuthPage: Popup sign-in result', res)
+      // Routing will be handled by onAuthStateChanged/fallback below
+    } else {
+      console.log('AuthPage: Starting Google sign-in via REDIRECT (prod).')
+      await signInWithRedirect(auth, googleProvider)
+    }
+  }
+
+  // Handle OAuth redirect results and initial auth state
   useEffect(() => {
+    try {
+      // Log firebase app options to ensure correct project/domain at runtime
+      // Note: values are non-secret and help diagnose domain/config mismatches
+      // @ts-ignore - options is available on app
+      const opts = (auth as any)?.app?.options || {}
+      console.log('AuthPage: Firebase app options', { authDomain: opts.authDomain, projectId: opts.projectId })
+    } catch {}
+    console.log('AuthPage: Checking for redirect result...');
     (async () => {
+      let redirectResult: any = null
       try {
-        const result = await getRedirectResult(auth)
-        if (result?.user) {
-          router.replace("/dashboard")
-        } else if (auth.currentUser) {
-          router.replace("/dashboard")
+        redirectResult = await getRedirectResult(auth)
+        console.log('AuthPage: getRedirectResult finished.', redirectResult);
+        if (redirectResult?.user) {
+          try { if (typeof window !== 'undefined') sessionStorage.removeItem('oauthFlow') } catch {}
+          const next = searchParams?.get('next') || '/dashboard'
+          console.log('AuthPage: Redirecting after Google to', next)
+          router.replace(next)
         }
       } catch (e: any) {
+        console.error('AuthPage: getRedirectResult error', e)
         setError(e?.message || "Google sign-in failed")
+      } finally {
+        // Even if result is null, mark that we've checked; fallback can proceed
+        try {
+          if (typeof window !== 'undefined') {
+            const flag = sessionStorage.getItem('oauthFlow')
+            console.log('AuthPage: oauthFlow flag on return =', flag)
+            if (flag && !redirectResult?.user) {
+              // On dev/localhost, redirect is often blocked; show popup completion banner
+              if (shouldUsePopup) setNeedsPopupCompletion(true)
+            }
+          }
+        } catch {}
+        setRedirectChecked(true)
       }
     })()
-  }, [])
+  }, [router, searchParams])
 
-  // Also listen for auth state changes to handle redirect race conditions
+  // Listen for auth state changes
   useEffect(() => {
+    console.log('AuthPage: Subscribing to onAuthStateChanged.');
     const unsub = onAuthStateChanged(auth, (user) => {
+      console.log('AuthPage: onAuthStateChanged fired. User:', user);
       if (user) {
-        router.replace("/dashboard")
+        console.log('AuthPage: User is present. Setting isSignedIn to true.');
+        setIsSignedIn(true)
+      } else {
+        console.log('AuthPage: User is null. Setting isSignedIn to false.');
+        setIsSignedIn(false)
       }
     })
-    return () => unsub()
-  }, [router])
+    return () => {
+      console.log('AuthPage: Unsubscribing from onAuthStateChanged.');
+      unsub();
+    }
+  }, [])
+
+  // Fallback: if user is signed in but getRedirectResult was null, still navigate away from /auth
+  useEffect(() => {
+    if (!redirectChecked) return
+    if (!isSignedIn) return
+    // Only redirect if we're currently on /auth
+    if (pathname && pathname.startsWith('/auth')) {
+      const next = searchParams?.get('next') || '/dashboard'
+      console.log('AuthPage: Fallback redirect to', next)
+      router.replace(next)
+    }
+  }, [redirectChecked, isSignedIn, pathname, router, searchParams])
 
   return (
     <MainLayout contentClassName="p-0">
@@ -77,6 +146,14 @@ export default function AuthPage() {
                   </p>
                 </div>
 
+                {isSignedIn ? (
+                  <div className="text-center space-y-4">
+                    <p className="text-green-600 font-medium">You have successfully signed in.</p>
+                    <Button onClick={() => router.push('/dashboard')}>
+                      Continue to Dashboard
+                    </Button>
+                  </div>
+                ) : (
                 <Tabs defaultValue="signin" className="w-full">
                   <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="signin">Sign In</TabsTrigger>
@@ -90,6 +167,23 @@ export default function AuthPage() {
                         <Label htmlFor="signin-email">Email</Label>
                         <Input id="signin-email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                       </div>
+                      {process.env.NODE_ENV !== 'production' && (
+                        <div className="mt-2 text-center">
+                          <button className="text-xs underline" onClick={async () => {
+                            try {
+                              setError(null)
+                              console.log('AuthPage[Debug]: Testing Google sign-in via POPUP...')
+                              const res = await signInWithPopup(auth, googleProvider)
+                              console.log('AuthPage[Debug]: Popup result', res)
+                            } catch (e: any) {
+                              console.error('AuthPage[Debug]: Popup error', e)
+                              setError(e?.message || 'Popup failed')
+                            }
+                          }}>
+                            Debug: Google Popup (temp)
+                          </button>
+                        </div>
+                      )}
                       <div className="grid gap-2">
                         <Label htmlFor="signin-password">Password</Label>
                         <Input id="signin-password" type="password" placeholder="••••••••" value={password} onChange={(e) => setPassword(e.target.value)} />
@@ -114,16 +208,27 @@ export default function AuthPage() {
                           Or continue with
                         </span>
                       </div>
+                      {needsPopupCompletion && (
+                        <div className="rounded border border-yellow-400 bg-yellow-50 text-yellow-900 p-2 text-xs">
+                          Google redirect couldn’t complete in this browser. Click Continue to finish sign-in via popup.
+                          <div className="mt-2">
+                            <Button size="sm" onClick={async () => {
+                              try {
+                                setError(null)
+                                setNeedsPopupCompletion(false)
+                                await startGoogleSignIn()
+                              } catch (e: any) {
+                                console.error('AuthPage: Popup completion error', e)
+                                setError(e?.message || 'Failed to complete sign-in')
+                              }
+                            }}>Continue</Button>
+                          </div>
+                        </div>
+                      )}
                       <div className="grid grid-cols-2 gap-2">
                         <Button variant="outline" className="w-full justify-center" onClick={async () => {
                           try {
-                            setError(null)
-                            if (process.env.NODE_ENV === 'development') {
-                              await signInWithPopup(auth, googleProvider)
-                              router.replace('/dashboard')
-                            } else {
-                              await signInWithRedirect(auth, googleProvider)
-                            }
+                            await startGoogleSignIn()
                           } catch (e: any) {
                             setError(e?.message || "Google sign-in failed")
                           }
@@ -262,12 +367,8 @@ export default function AuthPage() {
                         <Button variant="outline" className="w-full justify-center" onClick={async () => {
                           try {
                             setError(null)
-                            if (process.env.NODE_ENV === 'development') {
-                              await signInWithPopup(auth, googleProvider)
-                              router.replace('/dashboard')
-                            } else {
-                              await signInWithRedirect(auth, googleProvider)
-                            }
+                            try { if (typeof window !== 'undefined') sessionStorage.setItem('oauthFlow', '1') } catch {}
+                            await signInWithRedirect(auth, googleProvider)
                           } catch (e: any) {
                             setError(e?.message || "Google sign-in failed")
                           }
@@ -303,6 +404,7 @@ export default function AuthPage() {
                     </div>
                   </TabsContent>
                 </Tabs>
+                )}
 
                 <div className="text-center text-xs text-muted-foreground">
                   By clicking continue, you agree to our{" "}

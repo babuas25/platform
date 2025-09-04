@@ -3,6 +3,7 @@
 import { Search, Moon, Sun, Menu, User, Globe, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +14,9 @@ import { useTheme } from "next-themes"
 import { useLanguage } from "@/hooks/use-language"
 import { useState, useEffect, memo, useCallback } from "react"
 import Link from "next/link"
+import { onAuthStateChanged, signOut } from "firebase/auth"
+import { auth } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
 
 interface HeaderProps {
   onSidebarToggle: () => void
@@ -25,10 +29,20 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
   const { currentLanguage, languages, changeLanguage } = useLanguage()
   const [isClient, setIsClient] = useState(false)
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+  const [userEmail, setUserEmail] = useState<string | null>(null)
+  const router = useRouter()
 
   // Simple client check without complex state management
   useEffect(() => {
     setIsClient(true)
+  }, [])
+
+  // Observe Firebase auth state to toggle UI
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setUserEmail(user?.email ?? null)
+    })
+    return () => unsub()
   }, [])
 
   const handleThemeToggle = useCallback(() => {
@@ -127,14 +141,36 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             </div>
           </Button>
 
-          {/* Auth buttons - show on md and up */}
+          {/* Auth buttons or user menu - desktop */}
           <div className="hidden md:flex items-center space-x-2">
-            <Button asChild variant="outline" size="sm">
-              <Link href="/auth?mode=register">Register</Link>
-            </Button>
-            <Button asChild variant="outline" size="sm">
-              <Link href="/auth?mode=sign-in">Sign In</Link>
-            </Button>
+            {userEmail ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="px-2">
+                    <Avatar className="h-7 w-7">
+                      <AvatarFallback>{userEmail.charAt(0).toUpperCase()}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => { await signOut(auth); router.replace('/auth') }}>
+                    Sign out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/auth?mode=register">Register</Link>
+                </Button>
+                <Button asChild variant="outline" size="sm">
+                  <Link href="/auth?mode=sign-in">Sign In</Link>
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile user menu - show below md */}
@@ -145,12 +181,25 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44 md:hidden">
-              <DropdownMenuItem asChild>
-                <Link href="/auth?mode=sign-in">Sign In</Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/auth?mode=register">Registration</Link>
-              </DropdownMenuItem>
+              {userEmail ? (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={async () => { await signOut(auth); router.replace('/auth') }}>
+                    Sign out
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth?mode=sign-in">Sign In</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/auth?mode=register">Registration</Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>

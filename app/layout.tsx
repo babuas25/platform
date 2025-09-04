@@ -63,17 +63,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" suppressHydrationWarning className={`${GeistSans.variable} ${nordiquePro.variable}`}>
-      <head>
-        {/* Preload Nordique Pro font for better performance */}
-        <link
-          rel="preload"
-          href="/fonts/nordiquepro-semibold.otf"
-          as="font"
-          type="font/otf"
-          crossOrigin="anonymous"
-        />
-      </head>
+    <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${GeistSans.variable} ${nordiquePro.variable}`}>
+      <head></head>
       <body className={`${GeistSans.className} font-sans`}>
         <ThemeProvider
           attribute="class"

@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { useState } from "react"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,8 +13,8 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Calendar } from "@/components/ui/calendar"
 import { Calendar as CalendarIcon } from "lucide-react"
 import { MainLayout } from "@/components/layout/main-layout"
-import { auth, googleProvider } from "@/lib/firebase"
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithPopup } from "firebase/auth"
+import { auth, googleProvider, facebookProvider } from "@/lib/firebase"
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithRedirect, getRedirectResult, onAuthStateChanged, signInWithPopup } from "firebase/auth"
 
 export default function AuthPage() {
   const [dob, setDob] = useState<Date | undefined>()
@@ -21,6 +22,33 @@ export default function AuthPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
+
+  // Handle OAuth redirect results (e.g., Google sign-in)
+  useEffect(() => {
+    (async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result?.user) {
+          router.replace("/dashboard")
+        } else if (auth.currentUser) {
+          router.replace("/dashboard")
+        }
+      } catch (e: any) {
+        setError(e?.message || "Google sign-in failed")
+      }
+    })()
+  }, [])
+
+  // Also listen for auth state changes to handle redirect race conditions
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.replace("/dashboard")
+      }
+    })
+    return () => unsub()
+  }, [router])
 
   return (
     <MainLayout contentClassName="p-0">
@@ -71,6 +99,7 @@ export default function AuthPage() {
                           setError(null)
                           setLoading(true)
                           await signInWithEmailAndPassword(auth, email, password)
+                          router.replace("/dashboard")
                         } catch (e: any) {
                           setError(e?.message || "Failed to sign in")
                         } finally {
@@ -89,7 +118,12 @@ export default function AuthPage() {
                         <Button variant="outline" className="w-full justify-center" onClick={async () => {
                           try {
                             setError(null)
-                            await signInWithPopup(auth, googleProvider)
+                            if (process.env.NODE_ENV === 'development') {
+                              await signInWithPopup(auth, googleProvider)
+                              router.replace('/dashboard')
+                            } else {
+                              await signInWithRedirect(auth, googleProvider)
+                            }
                           } catch (e: any) {
                             setError(e?.message || "Google sign-in failed")
                           }
@@ -114,7 +148,14 @@ export default function AuthPage() {
                           </svg>
                           Google
                         </Button>
-                        <Button variant="outline" className="w-full justify-center">
+                        <Button variant="outline" className="w-full justify-center" onClick={async () => {
+                          try {
+                            setError(null)
+                            await signInWithRedirect(auth, facebookProvider)
+                          } catch (e: any) {
+                            setError(e?.message || "Facebook sign-in failed")
+                          }
+                        }}>
                           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24" fill="#1877F2">
                             <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z"/>
                           </svg>
@@ -186,7 +227,7 @@ export default function AuthPage() {
                       <div className="grid grid-cols-2 gap-4">
                         <div className="grid gap-2">
                           <Label htmlFor="email">Email</Label>
-                          <Input id="email" type="email" placeholder="name@example.com" />
+                          <Input id="email" type="email" placeholder="name@example.com" value={email} onChange={(e) => setEmail(e.target.value)} />
                         </div>
                         <div className="grid gap-2">
                           <Label htmlFor="mobile">Mobile</Label>
@@ -202,6 +243,7 @@ export default function AuthPage() {
                           setError(null)
                           setLoading(true)
                           await createUserWithEmailAndPassword(auth, email, password)
+                          router.replace("/dashboard")
                         } catch (e: any) {
                           setError(e?.message || "Registration failed")
                         } finally {
@@ -217,7 +259,19 @@ export default function AuthPage() {
                         </span>
                       </div>
                       <div className="grid grid-cols-2 gap-2">
-                        <Button variant="outline" className="w-full justify-center">
+                        <Button variant="outline" className="w-full justify-center" onClick={async () => {
+                          try {
+                            setError(null)
+                            if (process.env.NODE_ENV === 'development') {
+                              await signInWithPopup(auth, googleProvider)
+                              router.replace('/dashboard')
+                            } else {
+                              await signInWithRedirect(auth, googleProvider)
+                            }
+                          } catch (e: any) {
+                            setError(e?.message || "Google sign-in failed")
+                          }
+                        }}>
                           <svg className="mr-2 h-4 w-4" viewBox="0 0 24 24">
                             <path
                               d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"

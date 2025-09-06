@@ -10,10 +10,10 @@ const publicRoutes = ['/', '/auth/signin', '/auth/register', '/api/auth'];
 const protectedRoutes: { prefix: string; roles: UserRole[] }[] = [
   { prefix: '/superadmin', roles: ['SuperAdmin'] },
   { prefix: '/users/admin', roles: ['Admin', 'SuperAdmin'] },
-  { prefix: '/users/staff', roles: ['Staff', 'Admin', 'SuperAdmin'] },
-  { prefix: '/users/partner', roles: ['Partner', 'Admin', 'SuperAdmin'] },
-  { prefix: '/users/agent', roles: ['Agent', 'Admin', 'SuperAdmin'] },
-  { prefix: '/users/publicuser', roles: ['User', 'Staff', 'Partner', 'Agent', 'Admin', 'SuperAdmin'] },
+  { prefix: '/users/staff', roles: ['Support', 'Key Manager', 'Research', 'Media', 'Sales', 'Admin', 'SuperAdmin'] },
+  { prefix: '/users/partner', roles: ['Supplier', 'Service Provider', 'Admin', 'SuperAdmin'] },
+  { prefix: '/users/agent', roles: ['Distributor', 'Franchise', 'B2B', 'Admin', 'SuperAdmin'] },
+  { prefix: '/users/publicuser', roles: ['User', 'Support', 'Key Manager', 'Research', 'Media', 'Sales', 'Supplier', 'Service Provider', 'Distributor', 'Franchise', 'B2B', 'Admin', 'SuperAdmin'] },
 ];
 
 export async function middleware(request: NextRequest) {

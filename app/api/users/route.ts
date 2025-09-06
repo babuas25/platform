@@ -2,22 +2,22 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { db } from '@/lib/firebase'
-import { doc, setDoc, Timestamp } from 'firebase/firestore'
+import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore'
 import { canManageRole, getManageableRoles, UserRole } from '@/lib/rbac'
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions as any) as any
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const currentUserRole = (session.user as any).role as UserRole
+    const currentUserRole = (session.user as any)?.role as UserRole
     const { name, email, role, phone, location } = await request.json()
 
     // Validate the role
-    const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'Staff', 'Partner', 'Agent', 'User']
+    const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'Support', 'Key Manager', 'Research', 'Media', 'Sales', 'Supplier', 'Service Provider', 'Distributor', 'Franchise', 'B2B', 'User']
     if (!validRoles.includes(role)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
@@ -155,13 +155,13 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions as any) as any
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const currentUserRole = (session.user as any).role as UserRole
+    const currentUserRole = (session.user as any)?.role as UserRole
     const manageableRoles = getManageableRoles(currentUserRole)
 
     return NextResponse.json({

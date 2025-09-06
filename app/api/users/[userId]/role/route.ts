@@ -7,21 +7,21 @@ import { canManageRole, getManageableRoles, UserRole } from '@/lib/rbac'
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions as any) as any
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const currentUserRole = (session.user as any).role as UserRole
-    const { userId } = params
+    const currentUserRole = (session.user as any)?.role as UserRole
+    const { userId } = await params
     const { role: newRole } = await request.json()
 
     // Validate the new role
-    const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'Staff', 'Partner', 'Agent', 'User']
+    const validRoles: UserRole[] = ['SuperAdmin', 'Admin', 'Support', 'Key Manager', 'Research', 'Media', 'Sales', 'Supplier', 'Service Provider', 'Distributor', 'Franchise', 'B2B', 'User']
     if (!validRoles.includes(newRole)) {
       return NextResponse.json({ error: 'Invalid role' }, { status: 400 })
     }
@@ -153,17 +153,17 @@ export async function PATCH(
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { userId: string } }
+  { params }: { params: Promise<{ userId: string }> }
 ) {
   try {
-    const session = await getServerSession(authOptions)
+    const session = await getServerSession(authOptions as any) as any
     
     if (!session?.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const currentUserRole = (session.user as any).role as UserRole
-    const { userId } = params
+    const currentUserRole = (session.user as any)?.role as UserRole
+    const { userId } = await params
 
     // Get the target user
     const userRef = doc(db, 'users', userId)

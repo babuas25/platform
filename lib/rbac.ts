@@ -1,13 +1,33 @@
 // Role types
-export type UserRole = 'SuperAdmin' | 'Admin' | 'Staff' | 'Partner' | 'Agent' | 'User';
+export type UserRole = 
+  | 'SuperAdmin' 
+  | 'Admin' 
+  | 'Support' 
+  | 'Key Manager' 
+  | 'Research' 
+  | 'Media' 
+  | 'Sales' 
+  | 'Supplier' 
+  | 'Service Provider' 
+  | 'Distributor' 
+  | 'Franchise' 
+  | 'B2B' 
+  | 'User';
 
 // Role hierarchy (each role can manage roles below it in the hierarchy)
 const ROLE_HIERARCHY: Record<UserRole, number> = {
   'SuperAdmin': 5,
   'Admin': 4,
-  'Staff': 3,
-  'Partner': 2,
-  'Agent': 1,
+  'Support': 3,
+  'Key Manager': 3,
+  'Research': 3,
+  'Media': 3,
+  'Sales': 3,
+  'Supplier': 2,
+  'Service Provider': 2,
+  'Distributor': 1,
+  'Franchise': 1,
+  'B2B': 1,
   'User': 0
 };
 
@@ -45,9 +65,9 @@ export const getDefaultRole = (email: string): UserRole => {
 export const getManageableRoles = (userRole: UserRole): UserRole[] => {
   switch (userRole) {
     case 'SuperAdmin':
-      return ['SuperAdmin', 'Admin', 'Staff', 'Partner', 'Agent', 'User'];
+      return ['SuperAdmin', 'Admin', 'Support', 'Key Manager', 'Research', 'Media', 'Sales', 'Supplier', 'Service Provider', 'Distributor', 'Franchise', 'B2B', 'User'];
     case 'Admin':
-      return ['Staff', 'Partner', 'Agent', 'User'];
+      return ['Support', 'Key Manager', 'Research', 'Media', 'Sales', 'Supplier', 'Service Provider', 'Distributor', 'Franchise', 'B2B', 'User'];
     default:
       return [];
   }
@@ -60,11 +80,18 @@ export const getDashboardRoute = (role: UserRole): string => {
       return '/superadmin/admin';
     case 'Admin':
       return '/users/admin';
-    case 'Staff':
+    case 'Support':
+    case 'Key Manager':
+    case 'Research':
+    case 'Media':
+    case 'Sales':
       return '/users/staff';
-    case 'Partner':
+    case 'Supplier':
+    case 'Service Provider':
       return '/users/partner';
-    case 'Agent':
+    case 'Distributor':
+    case 'Franchise':
+    case 'B2B':
       return '/users/agent';
     case 'User':
     default:

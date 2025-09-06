@@ -100,7 +100,7 @@ const getRoleColor = (role: string) => {
     return matchesSearch && matchesRole
   })
 
-  const uniqueRoles = [...new Set(users.map(user => user.role))]
+  const uniqueRoles = Array.from(new Set(users.map(user => user.role)))
 
   if (usersError) {
     return <div>Error: {usersError}</div>

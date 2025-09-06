@@ -1,5 +1,6 @@
 import { initializeApp, getApps, getApp } from "firebase/app"
 import { getAuth, GoogleAuthProvider, FacebookAuthProvider, initializeAuth, indexedDBLocalPersistence, browserLocalPersistence, browserSessionPersistence, browserPopupRedirectResolver } from "firebase/auth"
+import { getFirestore, connectFirestoreEmulator } from "firebase/firestore"
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY as string,
@@ -41,5 +42,20 @@ googleProvider.setCustomParameters({ prompt: 'consent select_account' })
 const facebookProvider = new FacebookAuthProvider()
 facebookProvider.setCustomParameters({ display: 'popup' })
 
-export { app, auth, googleProvider, facebookProvider }
+// Initialize Firestore
+const db = getFirestore(app)
+
+// Connect to Firestore emulator in development if needed
+// Only connect to emulator if explicitly enabled
+if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIRESTORE_EMULATOR === 'true' && typeof window !== 'undefined') {
+  try {
+    connectFirestoreEmulator(db, 'localhost', 8080)
+    console.log('Connected to Firestore emulator')
+  } catch (error) {
+    // Emulator already connected or not available
+    console.log('Firestore emulator not available or already connected')
+  }
+}
+
+export { app, auth, db, googleProvider, facebookProvider }
 

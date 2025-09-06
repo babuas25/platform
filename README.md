@@ -165,3 +165,99 @@ For questions or support, please open an issue on GitHub.
 ---
 
 **Built with ❤️ using Next.js and modern web technologies**
+
+
+
+
+What you need to do now
+
+Install NextAuth dependency
+Approve running: npm i next-auth
+Note: TypeScript lints about “Cannot find module 'next-auth'” will disappear after install.
+Add environment variables (both in .env.local and on Vercel → Project → Settings → Environment Variables)
+NEXTAUTH_URL
+Local: http://localhost:3000
+Production: https://platform-gilt-tau.vercel.app
+NEXTAUTH_SECRET
+Generate a random string (Node): node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+GOOGLE_CLIENT_ID / GOOGLE_CLIENT_SECRET
+FACEBOOK_CLIENT_ID / FACEBOOK_CLIENT_SECRET
+NEXT_PUBLIC_FIREBASE_API_KEY (or FIREBASE_API_KEY)
+Keep your existing value; used by the Credentials provider (Firebase REST)
+Configure OAuth redirect URIs
+Google Cloud Console → Credentials → OAuth client → Authorized redirect URIs
+http://localhost:3000/api/auth/callback/google
+https://platform-gilt-tau.vercel.app/api/auth/callback/google
+Facebook Developers → Products → Facebook Login → Settings → Valid OAuth Redirect URIs
+http://localhost:3000/api/auth/callback/facebook
+https://platform-gilt-tau.vercel.app/api/auth/callback/facebook
+Deploy to Vercel
+After setting env vars in Vercel, trigger a redeploy.
+On production, test:
+Email/password sign-in and registration
+Google sign-in
+Facebook sign-in
+Notes
+
+Your UI/design on 
+app/auth/page.tsx
+ is unchanged.
+Previous Firebase client auth code is removed where not needed. We still use Firebase securely via REST for email/password sign-in and registration, so no custom database is required.
+The protected dashboard now uses a server-side session guard for reliability on Vercel.
+
+
+Here’s a ready-to-copy example for your .env.local and what to set on Vercel.
+Example .env.local (development)
+env
+
+# NextAuth
+NEXTAUTH_URL=http://localhost:3000
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+NEXTAUTH_SECRET=your_local_random_secret_here
+
+# Google OAuth
+GOOGLE_CLIENT_ID=your_google_client_id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+
+# Facebook OAuth
+FACEBOOK_CLIENT_ID=your_facebook_app_id
+FACEBOOK_CLIENT_SECRET=your_facebook_app_secret
+
+# Firebase (used by Credentials provider and register API)
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_web_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=000000000000
+NEXT_PUBLIC_FIREBASE_APP_ID=1:000000000000:web:abcdef1234567890
+# Optional
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX
+
+
+Vercel (production) environment variables
+
+NEXTAUTH_URL=https://platform-gilt-tau.vercel.app
+NEXTAUTH_SECRET=the_same_or_new_random_secret
+GOOGLE_CLIENT_ID=…
+GOOGLE_CLIENT_SECRET=…
+FACEBOOK_CLIENT_ID=…
+FACEBOOK_CLIENT_SECRET=…
+NEXT_PUBLIC_FIREBASE_API_KEY=…
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your-project-id.firebaseapp.com
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your-project-id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your-project-id.appspot.com
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=…
+NEXT_PUBLIC_FIREBASE_APP_ID=…
+NEXT_PUBLIC_FIREBASE_MEASUREMENT_ID=G-XXXXXXXXXX (optional)
+Don’t forget the OAuth redirect URIs
+
+Google:
+http://localhost:3000/api/auth/callback/google
+https://platform-gilt-tau.vercel.app/api/auth/callback/google
+Facebook:
+http://localhost:3000/api/auth/callback/facebook
+https://platform-gilt-tau.vercel.app/api/auth/callback/facebook
+After setting env vars
+
+Local: restart dev server so changes take effect.
+Vercel: add env vars → redeploy.

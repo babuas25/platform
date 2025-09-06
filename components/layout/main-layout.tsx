@@ -29,7 +29,7 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
     <div className="min-h-screen bg-background">
       <Header onSidebarToggle={toggleSidebar} isSidebarOpen={sidebarOpen} sidebarCollapsed={sidebarCollapsed} />
       
-      <div className="flex pt-14"> {/* Add padding-top for fixed header */}
+      <div className="pt-14 flex"> {/* Use flex layout */}
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={closeSidebar} 
@@ -38,8 +38,8 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
         />
         
         {/* Main content */}
-        <main className={`flex-1`}>
-          <div className={cn("p-6", contentClassName)}>
+        <main className="flex-1 min-h-[calc(100vh-3.5rem)] overflow-x-auto">
+          <div className={cn("p-6 w-full", contentClassName)}>
             {children}
           </div>
         </main>

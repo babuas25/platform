@@ -6,6 +6,7 @@ export interface User {
   category: UserCategory
   subcategory: UserSubcategory
   status: UserStatus
+  suspendedUntil?: string
   lastLogin?: string
   createdAt: string
   updatedAt: string
@@ -117,6 +118,7 @@ export interface UpdateUserData {
   category?: UserCategory
   subcategory?: UserSubcategory
   status?: UserStatus
+  suspendedUntil?: string | null
   phone?: string
   location?: string
   department?: string

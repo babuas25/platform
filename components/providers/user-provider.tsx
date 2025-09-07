@@ -22,6 +22,9 @@ interface UserContextType {
   createUser: (userData: CreateUserData) => Promise<string>
   updateUser: (id: string, userData: UpdateUserData) => Promise<void>
   deleteUser: (id: string) => Promise<void>
+  setActive: (id: string) => Promise<void>
+  setInactive: (id: string) => Promise<void>
+  suspendFor: (id: string, until: Date) => Promise<void>
   actionsLoading: boolean
   actionsError: string | null
 }
@@ -52,6 +55,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children, filters })
     createUser,
     updateUser,
     deleteUser,
+    setActive,
+    setInactive,
+    suspendFor,
     loading: actionsLoading,
     error: actionsError
   } = useUserActions()
@@ -77,6 +83,9 @@ export const UserProvider: React.FC<UserProviderProps> = ({ children, filters })
     createUser,
     updateUser,
     deleteUser,
+    setActive,
+    setInactive,
+    suspendFor,
     actionsLoading,
     actionsError
   }

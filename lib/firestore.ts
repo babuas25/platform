@@ -38,6 +38,7 @@ const docToUser = (doc: QueryDocumentSnapshot<DocumentData>): User => {
     category: data.category || 'Users',
     subcategory: data.subcategory || 'publicuser',
     status: data.status || 'Active',
+    suspendedUntil: data.suspendedUntil ? timestampToString(data.suspendedUntil) : undefined,
     lastLogin: data.lastLogin ? timestampToString(data.lastLogin) : undefined,
     createdAt: data.createdAt ? timestampToString(data.createdAt) : new Date().toISOString(),
     updatedAt: data.updatedAt ? timestampToString(data.updatedAt) : new Date().toISOString(),
@@ -84,6 +85,23 @@ export const getUsers = async (filters?: UserFilters): Promise<User[]> => {
     
     const querySnapshot = await getDocs(q)
     let users = querySnapshot.docs.map(docToUser)
+
+    // Auto-activate users whose suspension expired
+    const nowIso = new Date().toISOString()
+    const toActivate: { id: string }[] = []
+    users = users.map(u => {
+      if (u.status === 'Suspended' && u.suspendedUntil && u.suspendedUntil <= nowIso) {
+        toActivate.push({ id: u.id })
+        return { ...u, status: 'Active', suspendedUntil: undefined }
+      }
+      return u
+    })
+    // Fire and forget updates
+    toActivate.forEach(async ({ id }) => {
+      try {
+        await updateUser(id, { status: 'Active', suspendedUntil: null })
+      } catch {}
+    })
     
     // Apply search filter (client-side for text search)
     if (filters?.search) {

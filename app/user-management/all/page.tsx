@@ -23,20 +23,40 @@ import {
   Trash2,
   Eye,
   UserPlus,
-  Download
+  Download,
+  ArrowUpDown
 } from "lucide-react"
 import { useState } from "react"
 import { UserProvider, useUserContext } from "@/components/providers/user-provider"
 import { UserFilters } from "@/lib/types/user"
 import { MainLayout } from "@/components/layout/main-layout"
 import { RoleManager } from "@/components/user-management/role-manager"
-import { CreateUserDialog } from "@/components/user-management/create-user-dialog"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+// import { CreateUserDialog } from "@/components/user-management/create-user-dialog"
+import { Skeleton } from "@/components/ui/skeleton"
 
 function AllUsersContent() {
   const { data: session, status } = useSession()
-  const { users, usersLoading, usersError } = useUserContext()
+  const { users, usersLoading, usersError, setActive, setInactive, suspendFor, refetchUsers } = useUserContext()
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState("all")
+  const [filterStatus, setFilterStatus] = useState("all")
+  const [sortKey, setSortKey] = useState<"name" | "role" | "category" | "status" | "lastLogin" | "createdAt">("name")
+  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
+
+  const toggleSort = (key: typeof sortKey) => {
+    if (sortKey === key) {
+      setSortDir(prev => (prev === "asc" ? "desc" : "asc"))
+    } else {
+      setSortKey(key)
+      setSortDir("asc")
+    }
+  }
 
 const getStatusColor = (status: string) => {
   switch (status) {
@@ -78,7 +98,60 @@ const getRoleColor = (role: string) => {
 }
 
   if (status === "loading" || usersLoading) {
-    return <div>Loading...</div>
+    return (
+      <MainLayout>
+        <div className="container mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div className="space-y-2">
+              <Skeleton className="h-8 w-48" />
+              <Skeleton className="h-4 w-80" />
+            </div>
+          </div>
+
+          <Card>
+            <CardHeader>
+              <Skeleton className="h-5 w-24" />
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col sm:flex-row gap-4">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 sm:w-48 w-full" />
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div className="space-y-2">
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-4 w-56" />
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="rounded-md border">
+                <div className="divide-y">
+                  {[...Array(6)].map((_, index) => (
+                    <div key={index} className="grid grid-cols-7 gap-4 p-4">
+                      <Skeleton className="h-5 w-40" />
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-5 w-24" />
+                      <Skeleton className="h-5 w-20" />
+                      <Skeleton className="h-5 w-32" />
+                      <Skeleton className="h-5 w-32" />
+                      <div className="flex gap-1">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </MainLayout>
+    )
   }
   
   if (!session) {
@@ -92,12 +165,42 @@ const getRoleColor = (role: string) => {
     redirect("/user-management")
   }
 
-  // Filter users based on search term and role filter
+  // Filter users based on search term, role filter, and status
   const filteredUsers = users.filter(user => {
     const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
     const matchesRole = filterRole === "all" || user.role === filterRole
-    return matchesSearch && matchesRole
+    const matchesStatus = filterStatus === "all" || user.status === filterStatus
+    return matchesSearch && matchesRole && matchesStatus
+  })
+
+  // Sort users according to selected key and direction
+  const sortedUsers = [...filteredUsers].sort((a, b) => {
+    const dir = sortDir === "asc" ? 1 : -1
+    switch (sortKey) {
+      case "name":
+        return a.name.localeCompare(b.name) * dir
+      case "role":
+        return a.role.localeCompare(b.role) * dir
+      case "category":
+        return a.category.localeCompare(b.category) * dir
+      case "status":
+        return a.status.localeCompare(b.status) * dir
+      case "lastLogin": {
+        // Handle potentially undefined lastLogin values
+        const aDate = a.lastLogin ? new Date(a.lastLogin).getTime() : 0
+        const bDate = b.lastLogin ? new Date(b.lastLogin).getTime() : 0
+        return (aDate - bDate) * dir
+      }
+      case "createdAt": {
+        // Handle potentially undefined createdAt values (defensive coding)
+        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
+        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0
+        return (aDate - bDate) * dir
+      }
+      default:
+        return 0
+    }
   })
 
   const uniqueRoles = Array.from(new Set(users.map(user => user.role)))
@@ -119,13 +222,7 @@ const getRoleColor = (role: string) => {
             Showing all users across all categories ({filteredUsers.length} users)
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" size="sm">
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <CreateUserDialog onUserCreated={() => window.location.reload()} />
-        </div>
+        {/* Header actions removed: Export & Add User */}
       </div>
 
       {/* Filters */}
@@ -158,6 +255,32 @@ const getRoleColor = (role: string) => {
                 ))}
               </select>
             </div>
+            <div className="sm:w-40">
+              <select
+                value={filterStatus}
+                onChange={(e) => setFilterStatus(e.target.value)}
+                className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm"
+              >
+                <option value="all">All Statuses</option>
+                <option value="Active">Active</option>
+                <option value="Inactive">Inactive</option>
+                <option value="Pending">Pending</option>
+              </select>
+            </div>
+            <div className="sm:w-48">
+              <select
+                value={sortKey}
+                onChange={(e) => setSortKey(e.target.value as any)}
+                className="w-full h-10 px-3 py-2 border border-input bg-background rounded-md text-sm"
+              >
+                <option value="name">Sort by Name</option>
+                <option value="role">Sort by Role</option>
+                <option value="status">Sort by Status</option>
+                <option value="lastLogin">Sort by Last Login</option>
+                <option value="createdAt">Sort by Created</option>
+              </select>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => setSortDir(prev => prev === "asc" ? "desc" : "asc")}>{sortDir === "asc" ? "Asc" : "Desc"}</Button>
           </div>
         </CardContent>
       </Card>
@@ -175,17 +298,29 @@ const getRoleColor = (role: string) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>User</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Category</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Last Login</TableHead>
-                  <TableHead>Created</TableHead>
+                  <TableHead>
+                    <button className="inline-flex items-center" onClick={() => toggleSort("name")}>User <ArrowUpDown className="ml-1 h-3 w-3" /></button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="inline-flex items-center" onClick={() => toggleSort("role")}>Role <ArrowUpDown className="ml-1 h-3 w-3" /></button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="inline-flex items-center" onClick={() => toggleSort("category")}>Category <ArrowUpDown className="ml-1 h-3 w-3" /></button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="inline-flex items-center" onClick={() => toggleSort("status")}>Status <ArrowUpDown className="ml-1 h-3 w-3" /></button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="inline-flex items-center" onClick={() => toggleSort("lastLogin")}>Last Login <ArrowUpDown className="ml-1 h-3 w-3" /></button>
+                  </TableHead>
+                  <TableHead>
+                    <button className="inline-flex items-center" onClick={() => toggleSort("createdAt")}>Created <ArrowUpDown className="ml-1 h-3 w-3" /></button>
+                  </TableHead>
                   <TableHead className="w-[50px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filteredUsers.map((user) => (
+                {sortedUsers.map((user) => (
                   <TableRow key={user.id}>
                     <TableCell>
                       <div>
@@ -229,9 +364,34 @@ const getRoleColor = (role: string) => {
                         <Button variant="ghost" size="sm">
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-56">
+                            <DropdownMenuItem onClick={async () => { await setActive(user.id); refetchUsers(); }}>Activate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { await setInactive(user.id); refetchUsers(); }}>Deactivate</DropdownMenuItem>
+                            <div className="px-2 py-1 text-xs text-muted-foreground">Suspend</div>
+                            {[
+                              { label: '1 Day', days: 1 },
+                              { label: '2 Days', days: 2 },
+                              { label: '3 Days', days: 3 },
+                              { label: '1 Week', days: 7 },
+                              { label: '2 Weeks', days: 14 },
+                              { label: '3 Weeks', days: 21 },
+                              { label: '1 Month', days: 30 },
+                            ].map(opt => (
+                              <DropdownMenuItem key={opt.label} onClick={async () => {
+                                const until = new Date();
+                                until.setDate(until.getDate() + opt.days);
+                                await suspendFor(user.id, until);
+                                refetchUsers();
+                              }}>{opt.label}</DropdownMenuItem>
+                            ))}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
                       </div>
                     </TableCell>
                   </TableRow>

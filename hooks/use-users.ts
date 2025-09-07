@@ -140,6 +140,18 @@ export const useUserActions = () => {
     }
   }, [])
 
+  const setActive = useCallback(async (id: string) => {
+    await updateUserAction(id, { status: 'Active', suspendedUntil: null })
+  }, [updateUserAction])
+
+  const setInactive = useCallback(async (id: string) => {
+    await updateUserAction(id, { status: 'Inactive', suspendedUntil: null })
+  }, [updateUserAction])
+
+  const suspendFor = useCallback(async (id: string, until: Date) => {
+    await updateUserAction(id, { status: 'Suspended', suspendedUntil: until.toISOString() })
+  }, [updateUserAction])
+
   const deleteUserAction = useCallback(async (id: string) => {
     try {
       setLoading(true)
@@ -158,6 +170,9 @@ export const useUserActions = () => {
     createUser: createUserAction,
     updateUser: updateUserAction,
     deleteUser: deleteUserAction,
+    setActive,
+    setInactive,
+    suspendFor,
     loading,
     error
   }

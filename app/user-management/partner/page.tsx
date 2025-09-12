@@ -14,6 +14,7 @@ import {
   UserPlus
 } from "lucide-react"
 import Link from "next/link"
+import { MainLayout } from "@/components/layout/main-layout"
 
 const partnerSubcategories = [
   {
@@ -62,7 +63,8 @@ export default function PartnerUsersPage() {
   const totalPartners = partnerSubcategories.reduce((sum, sub) => sum + parseInt(sub.count), 0)
 
   return (
-    <div className="container mx-auto p-6 space-y-6">
+    <MainLayout>
+      <div className="container mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold flex items-center gap-2">
@@ -139,6 +141,7 @@ export default function PartnerUsersPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+      </div>
+    </MainLayout>
   )
 }

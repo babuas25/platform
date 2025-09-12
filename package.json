@@ -10,7 +10,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "build:prod": "NODE_ENV=production next build",
+    "setup:prod": "node scripts/production-setup.js || scripts/production-setup.bat",
+    "db:init": "echo 'Use the Database Initialization page in the admin dashboard'",
+    "db:check": "echo 'Database status check available at /database-init'"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.9.0",

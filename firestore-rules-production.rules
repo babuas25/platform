@@ -1,0 +1,32 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow authenticated users to read/write their own user document
+    match /users/{userId} {
+      allow read, write: if request.auth != null;
+    }
+    
+    // Allow SuperAdmin users to perform database operations for initialization
+    match /users/{userId} {
+      allow read, write: if request.auth != null && 
+        (request.auth.token.role == 'SuperAdmin' || 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'SuperAdmin');
+    }
+    
+    // Allow database test operations for authenticated users
+    match /database_test/{document} {
+      allow read, write, create, delete: if request.auth != null;
+    }
+    
+    // Allow database status checks for authenticated users
+    match /{document=**} {
+      allow read: if request.auth != null;
+    }
+    
+    // Temporary: Allow all operations for authenticated users during initial setup
+    // Remove this rule after database initialization is complete
+    match /{document=**} {
+      allow read, write, create, delete: if request.auth != null;
+    }
+  }
+}

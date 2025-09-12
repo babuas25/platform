@@ -1,0 +1,95 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for role checking
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    function getUserData() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+    }
+    
+    function hasRole(role) {
+      return isAuthenticated() && getUserData().role == role;
+    }
+    
+    function isSuperAdmin() {
+      return hasRole('SuperAdmin');
+    }
+    
+    function isAdmin() {
+      return hasRole('Admin') || isSuperAdmin();
+    }
+    
+    function isStaff() {
+      return hasRole('Support') || hasRole('Key Manager') || hasRole('Research') || 
+             hasRole('Media') || hasRole('Sales') || isAdmin();
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Users collection - role-based access control
+    match /users/{userId} {
+      // Read access: Users can read their own data, Admins can read all
+      allow read: if isOwner(userId) || isAdmin();
+      
+      // Write access: Users can update their own profile (limited fields), Admins can update all
+      allow update: if (isOwner(userId) && onlyUpdatingAllowedFields()) || isAdmin();
+      
+      // Create access: Only admins can create new users
+      allow create: if isAdmin() && validUserData();
+      
+      // Delete access: Only SuperAdmins can delete users
+      allow delete: if isSuperAdmin();
+    }
+    
+    // Function to check if user is only updating allowed profile fields
+    function onlyUpdatingAllowedFields() {
+      let allowedFields = ['name', 'phone', 'location', 'avatar'];
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(allowedFields);
+    }
+    
+    // Function to validate user data structure
+    function validUserData() {
+      let required = ['name', 'email', 'role', 'category', 'status'];
+      return request.resource.data.keys().hasAll(required) &&
+             request.resource.data.role in ['SuperAdmin', 'Admin', 'Support', 'Key Manager', 
+                                          'Research', 'Media', 'Sales', 'Supplier', 
+                                          'Service Provider', 'Distributor', 'Franchise', 
+                                          'B2B', 'User'];
+    }
+    
+    // Database test collection - only for authenticated users (temporary testing)
+    match /_database_test/{document} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+    
+    // System logs - read-only for admins
+    match /logs/{document} {
+      allow read: if isAdmin();
+      allow write: if false; // Logs are created server-side only
+    }
+    
+    // Settings collection - admin only
+    match /settings/{document} {
+      allow read: if isStaff();
+      allow write: if isAdmin();
+    }
+    
+    // Analytics collection - read only for staff and above
+    match /analytics/{document} {
+      allow read: if isStaff();
+      allow write: if false; // Analytics are generated server-side
+    }
+    
+    // Default deny rule for any other collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

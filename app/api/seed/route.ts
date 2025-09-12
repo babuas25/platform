@@ -3,11 +3,9 @@ import { seedDatabase } from '@/lib/seed-data'
 
 export async function POST(request: NextRequest) {
   try {
-    // Only allow seeding in development
-    if (process.env.NODE_ENV === 'production') {
-      return NextResponse.json({ error: 'Seeding not allowed in production' }, { status: 403 })
-    }
-
+    // Allow seeding in production for database initialization
+    // Note: This should be secured with proper authentication in production
+    
     await seedDatabase()
     
     return NextResponse.json({ 

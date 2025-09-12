@@ -20,7 +20,8 @@ import {
   Database,
   Cpu,
   LogOut,
-  Clock
+  Clock,
+  HardDrive
 } from "lucide-react"
 import { UserRole as RbacUserRole } from "@/lib/rbac"
 import { Button } from "@/components/ui/button"
@@ -70,6 +71,13 @@ const navigationItems: NavigationItem[] = [
     icon: Home,
     href: "/",
     allowedRoles: ['SuperAdmin', 'Admin', 'Staff', 'Partner', 'Agent', 'User']
+  }),
+  createNavItem({
+    title: "Database Initialization",
+    icon: HardDrive,
+    href: "/database-init",
+    allowedRoles: ['SuperAdmin'],
+    description: "Initialize Firebase database"
   }),
   createNavItem({
     title: "User Management",

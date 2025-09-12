@@ -17,6 +17,8 @@ export interface User {
   permissions?: string[]
   securityLevel?: SecurityLevel
   subscription?: SubscriptionType
+  notes?: string
+  address?: string
   // Additional fields based on user type
   ticketsResolved?: number
   avgResponseTime?: string
@@ -109,6 +111,8 @@ export interface CreateUserData {
   department?: string
   permissions?: string[]
   subscription?: SubscriptionType
+  notes?: string
+  address?: string
 }
 
 export interface UpdateUserData {
@@ -125,4 +129,6 @@ export interface UpdateUserData {
   permissions?: string[]
   subscription?: SubscriptionType
   securityLevel?: SecurityLevel
+  notes?: string
+  address?: string
 }

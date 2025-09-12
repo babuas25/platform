@@ -8,6 +8,8 @@ import {
   ChevronDown,
   ChevronRight,
   ChevronLeft,
+  ChevronsRight,
+  ChevronsLeft,
   UserCog,
   UserCheck,
   UserPlus,
@@ -361,12 +363,15 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
               variant="ghost"
               size="icon"
               onClick={onToggleCollapse}
-              className="hidden lg:flex shrink-0 absolute right-2 h-10 w-10 items-center justify-center"
+              className={cn(
+                "hidden lg:flex shrink-0 h-10 w-10 items-center justify-center",
+                shouldShowText ? "absolute right-2" : "relative"
+              )}
             >
               {isCollapsed ? (
-                <ChevronRight className="h-5 w-5" />
+                <ChevronsRight className="h-5 w-5" />
               ) : (
-                <ChevronLeft className="h-5 w-5" />
+                <ChevronsLeft className="h-5 w-5" />
               )}
             </Button>
           </div>

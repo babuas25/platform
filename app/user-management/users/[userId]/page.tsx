@@ -18,6 +18,26 @@ import { UserProvider, useUserContext } from "@/components/providers/user-provid
 import { MainLayout } from "@/components/layout/main-layout"
 import Link from "next/link"
 
+// Format date helper function
+const formatDate = (dateValue: any) => {
+  if (!dateValue) return 'Never'
+    
+  // Handle Firestore timestamp objects
+  if (dateValue && typeof dateValue === 'object' && dateValue._seconds) {
+    const date = new Date(dateValue._seconds * 1000)
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  }
+    
+  // Handle regular date strings or Date objects
+  try {
+    const date = new Date(dateValue)
+    if (isNaN(date.getTime())) return 'Invalid Date'
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  } catch {
+    return 'Invalid Date'
+  }
+}
+
 function UserDetailContent() {
   const { data: session, status } = useSession()
   const params = useParams()
@@ -239,11 +259,11 @@ function UserDetailContent() {
             <CardContent className="space-y-4">
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Created At</label>
-                <p>{user.createdAt || 'N/A'}</p>
+                <p>{formatDate(user.createdAt)}</p>
               </div>
               <div>
                 <label className="text-sm font-medium text-muted-foreground">Last Login</label>
-                <p>{user.lastLogin || 'Never logged in'}</p>
+                <p>{formatDate(user.lastLogin)}</p>
               </div>
               {user.suspendedUntil && (
                 <div>

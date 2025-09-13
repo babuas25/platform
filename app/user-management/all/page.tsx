@@ -578,11 +578,11 @@ const getRoleColor = (role: string) => {
                                 <CardContent className="space-y-3 text-sm">
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground">Created At</label>
-                                    <p>{user.createdAt || 'N/A'}</p>
+                                    <p>{formatDate(user.createdAt)}</p>
                                   </div>
                                   <div>
                                     <label className="text-xs font-medium text-muted-foreground">Last Login</label>
-                                    <p>{user.lastLogin || 'Never logged in'}</p>
+                                    <p>{formatDate(user.lastLogin)}</p>
                                   </div>
                                   {user.suspendedUntil && (
                                     <div>
@@ -596,6 +596,16 @@ const getRoleColor = (role: string) => {
                             
                             {/* Action Buttons */}
                             <div className="flex justify-end gap-2 pt-4 border-t">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => {
+                                  router.push(`/user-management/users/${user.id}`)
+                                }}
+                              >
+                                <Eye className="h-4 w-4 mr-2" />
+                                View Details
+                              </Button>
                               <Button 
                                 variant="outline" 
                                 size="sm"
@@ -715,6 +725,15 @@ const getRoleColor = (role: string) => {
                           )}
                         </div>
                         <div className="flex gap-2 pt-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => router.push(`/user-management/users/${user.id}`)}
+                            className="flex-1 text-xs h-8"
+                          >
+                            <Eye className="h-3 w-3 mr-1" />
+                            View
+                          </Button>
                           <Button 
                             variant="outline" 
                             size="sm"

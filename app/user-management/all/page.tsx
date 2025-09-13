@@ -68,6 +68,26 @@ function AllUsersContent() {
     }
   }
 
+// Format date helper function
+const formatDate = (dateValue: any) => {
+  if (!dateValue) return 'Never'
+    
+  // Handle Firestore timestamp objects
+  if (dateValue && typeof dateValue === 'object' && dateValue._seconds) {
+    const date = new Date(dateValue._seconds * 1000)
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  }
+    
+  // Handle regular date strings or Date objects
+  try {
+    const date = new Date(dateValue)
+    if (isNaN(date.getTime())) return 'Invalid Date'
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})
+  } catch {
+    return 'Invalid Date'
+  }
+}
+
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Active":
@@ -408,10 +428,10 @@ const getRoleColor = (role: string) => {
                       </Badge>
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {user.lastLogin}
+                      {formatDate(user.lastLogin)}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {user.createdAt}
+                      {formatDate(user.createdAt)}
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-1">
@@ -667,7 +687,7 @@ const getRoleColor = (role: string) => {
                       </div>
                       <div>
                         <span className="text-muted-foreground">Last Login:</span>
-                        <div className="text-xs mt-1">{user.lastLogin || 'Never'}</div>
+                        <div className="text-xs mt-1">{formatDate(user.lastLogin)}</div>
                       </div>
                     </div>
 
@@ -685,7 +705,7 @@ const getRoleColor = (role: string) => {
                           </div>
                           <div>
                             <span className="text-muted-foreground">Created:</span>
-                            <div className="text-xs mt-1">{user.createdAt || 'N/A'}</div>
+                            <div className="text-xs mt-1">{formatDate(user.createdAt)}</div>
                           </div>
                           {user.suspendedUntil && (
                             <div>

@@ -234,10 +234,12 @@ const navigationItems: NavigationItem[] = [
 export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
   const [sessionTime, setSessionTime] = useState<string>('')
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   
-  // Debug log
+  // Debug log with more details
+  console.log('[SIDEBAR] Session status:', status);
   console.log('[SIDEBAR] Session data:', session);
+  console.log('[SIDEBAR] Session user:', session?.user);
   
   const userRole = (session?.user as any)?.role as RbacUserRole || 'User'
   console.log('[SIDEBAR] User role:', userRole);
@@ -320,6 +322,8 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   // Filter navigation items based on user role and permissions
   const filteredNavigationItems = navigationItems.filter(item => {
     if (!item.allowedRoles) return true
+    // Don't filter anything if session is still loading
+    if (status === 'loading') return true
     return item.allowedRoles.includes(userRole)
   })
 

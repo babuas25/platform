@@ -1,8 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
-import { db } from '@/lib/firebase'
-import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore'
+import { adminDb } from '@/lib/firebase-admin'
 import { canManageRole, getManageableRoles, UserRole } from '@/lib/rbac'
 
 export async function POST(request: NextRequest) {
@@ -30,11 +29,22 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const userRef = doc(db, 'users', email) // Using email as document ID
-    const existingUser = await getDoc(userRef)
-    
-    if (existingUser.exists()) {
-      return NextResponse.json({ error: 'User already exists' }, { status: 409 })
+    try {
+      const userRef = adminDb.collection('users').doc(email) // Using email as document ID
+      const existingUser = await userRef.get()
+      
+      if (existingUser.exists) {
+        return NextResponse.json({ error: 'User already exists' }, { status: 409 })
+      }
+    } catch (error) {
+      // Fallback to client SDK methods if Admin SDK not available
+      const { doc, getDoc } = await import('firebase/firestore')
+      const userRef = doc(adminDb, 'users', email)
+      const existingUser = await getDoc(userRef)
+      
+      if (existingUser.exists()) {
+        return NextResponse.json({ error: 'User already exists' }, { status: 409 })
+      }
     }
 
     // Helper functions to get category and subcategory
@@ -94,7 +104,7 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const now = Timestamp.now()
+    const now = new Date()
     const userData = {
       name,
       email,
@@ -129,7 +139,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create the user document
-    await setDoc(userRef, userData)
+    try {
+      const userRef = adminDb.collection('users').doc(email)
+      await userRef.set(userData)
+    } catch (error) {
+      // Fallback to client SDK methods if Admin SDK not available
+      const { doc, setDoc } = await import('firebase/firestore')
+      const userRef = doc(adminDb, 'users', email)
+      await setDoc(userRef, userData)
+    }
 
     return NextResponse.json({ 
       message: 'User created successfully',
@@ -162,17 +180,127 @@ export async function GET(request: NextRequest) {
     }
 
     const currentUserRole = (session.user as any)?.role as UserRole
-    const manageableRoles = getManageableRoles(currentUserRole)
+    const { searchParams } = new URL(request.url)
+    
+    // Check if this is a request for manageable roles (legacy endpoint)
+    if (searchParams.has('roles')) {
+      const manageableRoles = getManageableRoles(currentUserRole)
+      return NextResponse.json({
+        manageableRoles,
+        currentUserRole
+      })
+    }
 
-    return NextResponse.json({
-      manageableRoles,
-      currentUserRole
-    })
+    // Otherwise, return list of users with filters
+    let users: any[] = []
+    
+    try {
+      const usersRef = adminDb.collection('users')
+      let query: any = usersRef
+      
+      // Apply filters from query parameters
+      const role = searchParams.get('role')
+      const category = searchParams.get('category')
+      const subcategory = searchParams.get('subcategory')
+      const status = searchParams.get('status')
+      const subscription = searchParams.get('subscription')
+      const department = searchParams.get('department')
+      const searchTerm = searchParams.get('search')
+      
+      if (role) query = query.where('role', '==', role)
+      if (category) query = query.where('category', '==', category)
+      if (subcategory) query = query.where('subcategory', '==', subcategory)
+      if (status) query = query.where('status', '==', status)
+      if (subscription) query = query.where('subscription', '==', subscription)
+      if (department) query = query.where('department', '==', department)
+      
+      // Add ordering
+      query = query.orderBy('createdAt', 'desc')
+      
+      const snapshot = await query.get()
+      
+      users = snapshot.docs.map((doc: any) => {
+        const data = doc.data() as any
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt instanceof Date ? data.createdAt.toISOString() : data.createdAt,
+          updatedAt: data.updatedAt instanceof Date ? data.updatedAt.toISOString() : data.updatedAt,
+          lastLogin: data.lastLogin instanceof Date ? data.lastLogin.toISOString() : data.lastLogin
+        }
+      })
+      
+      // Apply text search filter if provided (client-side filtering)
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase()
+        users = users.filter((user: any) => 
+          user.name?.toLowerCase().includes(search) ||
+          user.email?.toLowerCase().includes(search) ||
+          user.phone?.toLowerCase().includes(search) ||
+          user.location?.toLowerCase().includes(search)
+        )
+      }
+    } catch (error) {
+      // Fallback to client SDK methods if Admin SDK not available
+      const { collection, getDocs, query, where, orderBy } = await import('firebase/firestore')
+      
+      const usersRef = collection(adminDb, 'users')
+      let constraints: any[] = []
+      
+      // Apply filters from query parameters
+      const role = searchParams.get('role')
+      const category = searchParams.get('category')
+      const subcategory = searchParams.get('subcategory')
+      const status = searchParams.get('status')
+      const subscription = searchParams.get('subscription')
+      const department = searchParams.get('department')
+      const searchTerm = searchParams.get('search')
+      
+      if (role) constraints.push(where('role', '==', role))
+      if (category) constraints.push(where('category', '==', category))
+      if (subcategory) constraints.push(where('subcategory', '==', subcategory))
+      if (status) constraints.push(where('status', '==', status))
+      if (subscription) constraints.push(where('subscription', '==', subscription))
+      if (department) constraints.push(where('department', '==', department))
+      
+      // Add ordering
+      constraints.push(orderBy('createdAt', 'desc'))
+      
+      // Build query
+      const usersQuery = constraints.length > 0 
+        ? query(usersRef, ...constraints)
+        : usersRef
+      
+      const snapshot = await getDocs(usersQuery)
+      users = snapshot.docs.map((doc: any) => {
+        const data = doc.data() as any
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt?.toDate?.()?.toISOString() || data.createdAt,
+          updatedAt: data.updatedAt?.toDate?.()?.toISOString() || data.updatedAt,
+          lastLogin: data.lastLogin?.toDate?.()?.toISOString() || data.lastLogin
+        }
+      })
+      
+      // Apply text search filter if provided (client-side filtering)
+      if (searchTerm) {
+        const search = searchTerm.toLowerCase()
+        users = users.filter((user: any) => 
+          user.name?.toLowerCase().includes(search) ||
+          user.email?.toLowerCase().includes(search) ||
+          user.phone?.toLowerCase().includes(search) ||
+          user.location?.toLowerCase().includes(search)
+        )
+      }
+    }
+
+    return NextResponse.json({ users })
 
   } catch (error) {
-    console.error('Error getting user creation info:', error)
+    console.error('Error fetching users:', error)
     return NextResponse.json(
-      { error: 'Failed to get user creation info' },
+      { error: 'Failed to fetch users' },
       { status: 500 }
     )
   }

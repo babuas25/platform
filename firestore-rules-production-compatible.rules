@@ -1,0 +1,130 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // Helper functions for authentication checking
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Function to validate user data structure for creation
+    function validUserData() {
+      let required = ['name', 'email', 'role', 'category', 'status'];
+      return request.resource.data.keys().hasAll(required) &&
+             request.resource.data.role in ['SuperAdmin', 'Admin', 'Support', 'Key Manager', 
+                                          'Research', 'Media', 'Sales', 'Supplier', 
+                                          'Service Provider', 'Distributor', 'Franchise', 
+                                          'B2B', 'User'] &&
+             request.resource.data.category in ['Admin', 'Staff', 'Partner', 'Agent', 'Users'] &&
+             request.resource.data.status in ['Active', 'Inactive', 'Pending', 'Suspended'];
+    }
+    
+    // Function to check if user is only updating allowed profile fields
+    function onlyUpdatingAllowedFields() {
+      let allowedFields = ['name', 'phone', 'location', 'avatar', 'lastLogin', 'updatedAt'];
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasOnly(allowedFields);
+    }
+    
+    // Function to check if updating sensitive fields (requires admin privileges)
+    function updatingSensitiveFields() {
+      let sensitiveFields = ['role', 'category', 'subcategory', 'status', 'permissions', 'securityLevel'];
+      return request.resource.data.diff(resource.data).affectedKeys()
+        .hasAny(sensitiveFields);
+    }
+    
+    // Users collection - comprehensive access control
+    match /users/{userId} {
+      // Read access: Allow authenticated users (authorization handled by API)
+      allow read: if isAuthenticated();
+      
+      // Create access: Allow authenticated users with proper data validation
+      // API layer handles role-based authorization
+      allow create: if isAuthenticated() && validUserData();
+      
+      // Update access: Allow authenticated users
+      // - Non-sensitive field updates (profile updates)
+      // - Sensitive field updates (handled by API authorization)
+      allow update: if isAuthenticated() && 
+                   (validUserData() || onlyUpdatingAllowedFields());
+      
+      // Delete access: Allow authenticated users (API handles SuperAdmin check)
+      allow delete: if isAuthenticated();
+    }
+    
+    // Database test collection - for database initialization testing
+    match /_database_test/{document} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+    
+    // Database initialization collection - for seeding operations
+    match /_database_init/{document} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+    
+    // System logs - controlled access
+    match /logs/{document} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Logs are immutable
+    }
+    
+    // Settings collection - admin operations
+    match /settings/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // API handles admin authorization
+    }
+    
+    // Analytics collection - read access for reporting
+    match /analytics/{document} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Analytics are append-only
+    }
+    
+    // User sessions - for NextAuth session management
+    match /sessions/{document} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+    
+    // User verification tokens - for email verification
+    match /verification_tokens/{document} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+    
+    // Password reset tokens
+    match /password_resets/{document} {
+      allow read, write, create, delete: if isAuthenticated();
+    }
+    
+    // Audit trail - for security and compliance
+    match /audit/{document} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated();
+      allow update, delete: if false; // Audit logs are immutable
+    }
+    
+    // User preferences and settings
+    match /user_preferences/{userId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Notifications
+    match /notifications/{document} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if isAuthenticated();
+    }
+    
+    // System configuration - for application settings
+    match /system_config/{document} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated(); // API handles admin authorization
+    }
+    
+    // Default deny rule for undefined collections
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

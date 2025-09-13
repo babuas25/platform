@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { UserRole } from '@/lib/rbac'
+import { CacheManager, CacheKeyGenerator, CacheConfigs } from '@/lib/cache-manager'
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,6 +14,19 @@ export async function GET(request: NextRequest) {
     }
 
     const currentUserRole = (session.user as any)?.role as UserRole
+
+    // Try to get from cache first
+    const cacheKey = CacheKeyGenerator.userStats()
+    const cachedStats = CacheManager.get('userStats', cacheKey, CacheConfigs.userStats)
+    if (cachedStats) {
+      console.log('[CACHE HIT] User stats from cache')
+      return NextResponse.json(cachedStats, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+          'X-Cache': 'HIT'
+        }
+      })
+    }
 
     // Get all users
     let users: any[] = []
@@ -73,8 +87,16 @@ export async function GET(request: NextRequest) {
       categoryStats,
       lastUpdated: new Date().toISOString()
     }
+    
+    // Cache the result
+    CacheManager.set('userStats', cacheKey, stats, CacheConfigs.userStats)
 
-    return NextResponse.json(stats)
+    return NextResponse.json(stats, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=600, stale-while-revalidate=1200',
+        'X-Cache': 'MISS'
+      }
+    })
 
   } catch (error) {
     console.error('Error fetching user stats:', error)

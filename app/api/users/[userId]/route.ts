@@ -3,10 +3,26 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { canManageRole, UserRole } from '@/lib/rbac'
+import { CacheManager, CacheKeyGenerator, CacheConfigs, CacheInvalidator } from '@/lib/cache-manager'
+import { CacheInvalidationUtils } from '@/lib/cache-invalidation'
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
     const { userId } = await params
+    
+    // Try to get from cache first
+    const cacheKey = CacheKeyGenerator.userById(userId)
+    const cachedUser = CacheManager.get('users', cacheKey, CacheConfigs.users)
+    if (cachedUser) {
+      console.log(`[CACHE HIT] User ${userId} from cache`)
+      return NextResponse.json(cachedUser, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+          'X-Cache': 'HIT'
+        }
+      })
+    }
+    
     const db = await getAdminDb()
     const userRef = db.collection('users').doc(userId)
     const userSnap = await userRef.get()
@@ -25,8 +41,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       updatedAt: userData?.updatedAt instanceof Date ? userData.updatedAt.toISOString() : userData?.updatedAt,
       lastLogin: userData?.lastLogin instanceof Date ? userData.lastLogin.toISOString() : userData?.lastLogin
     }
+    
+    // Cache the result
+    CacheManager.set('users', cacheKey, user, CacheConfigs.users)
 
-    return NextResponse.json(user)
+    return NextResponse.json(user, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=300, stale-while-revalidate=600',
+        'X-Cache': 'MISS'
+      }
+    })
 
   } catch (error) {
     console.error('Error fetching user:', error)
@@ -105,6 +129,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Update the user
     await userRef.update(updates)
+    
+    // Invalidate caches after successful update
+    CacheInvalidationUtils.invalidateUser(userId, 'update')
 
     return NextResponse.json({ 
       message: 'User updated successfully',
@@ -170,6 +197,9 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Delete the user
     await userRef.delete()
+    
+    // Invalidate caches after successful deletion
+    CacheInvalidationUtils.invalidateUser(userId, 'delete')
 
     return NextResponse.json({ 
       message: 'User deleted successfully',

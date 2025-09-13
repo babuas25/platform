@@ -3,6 +3,9 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
 import { getAdminDb } from '@/lib/firebase-admin'
 import { canManageRole, getManageableRoles, UserRole } from '@/lib/rbac'
+import { validatePaginationParams, calculatePagination, PaginatedResponse } from '@/lib/pagination'
+import { CacheManager, CacheKeyGenerator, CacheConfigs, CacheInvalidator } from '@/lib/cache-manager'
+import { CacheInvalidationUtils } from '@/lib/cache-invalidation'
 
 export async function POST(request: NextRequest) {
   try {
@@ -145,12 +148,19 @@ export async function POST(request: NextRequest) {
       const db = await getAdminDb()
       const userRef = db.collection('users').doc(email)
       await userRef.set(userData)
+      
+      // Invalidate user-related caches after successful creation
+      CacheInvalidationUtils.invalidateUser(email, 'create')
+      
     } catch (error) {
       // Fallback to client SDK methods if Admin SDK not available
       const { doc, setDoc } = await import('firebase/firestore')
       const db = await getAdminDb()
       const userRef = doc(db, 'users', email)
       await setDoc(userRef, userData)
+      
+      // Invalidate user-related caches after successful creation
+      CacheInvalidationUtils.invalidateUser(email, 'create')
     }
 
     return NextResponse.json({ 
@@ -195,34 +205,98 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Otherwise, return list of users with filters
+    // Get pagination parameters
+    const paginationParams = validatePaginationParams({
+      page: searchParams.get('page'),
+      limit: searchParams.get('limit'),
+      cursor: searchParams.get('cursor')
+    })
+    
+    // Get filter parameters
+    const filters = {
+      role: searchParams.get('role'),
+      category: searchParams.get('category'),
+      subcategory: searchParams.get('subcategory'),
+      status: searchParams.get('status'),
+      subscription: searchParams.get('subscription'),
+      department: searchParams.get('department'),
+      search: searchParams.get('search')
+    }
+
+    // Generate cache key for this request
+    const cacheKey = CacheKeyGenerator.usersList(filters, paginationParams.page, paginationParams.limit)
+    
+    // Try to get from cache first
+    const cachedResult = CacheManager.get('usersList', cacheKey, CacheConfigs.usersList)
+    if (cachedResult) {
+      console.log('[CACHE HIT] Users list from cache')
+      return NextResponse.json(cachedResult, {
+        headers: {
+          'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+          'X-Cache': 'HIT'
+        }
+      })
+    }
+
+    // Otherwise, return list of users with filters and pagination
     let users: any[] = []
+    let total = 0
     
     try {
       const db = await getAdminDb()
       const usersRef = db.collection('users')
-      let query: any = usersRef
       
-      // Apply filters from query parameters
-      const role = searchParams.get('role')
-      const category = searchParams.get('category')
-      const subcategory = searchParams.get('subcategory')
-      const status = searchParams.get('status')
-      const subscription = searchParams.get('subscription')
-      const department = searchParams.get('department')
-      const searchTerm = searchParams.get('search')
+      // Build base query with filters
+      let baseQuery: any = usersRef
       
-      if (role) query = query.where('role', '==', role)
-      if (category) query = query.where('category', '==', category)
-      if (subcategory) query = query.where('subcategory', '==', subcategory)
-      if (status) query = query.where('status', '==', status)
-      if (subscription) query = query.where('subscription', '==', subscription)
-      if (department) query = query.where('department', '==', department)
+      if (filters.role) baseQuery = baseQuery.where('role', '==', filters.role)
+      if (filters.category) baseQuery = baseQuery.where('category', '==', filters.category)
+      if (filters.subcategory) baseQuery = baseQuery.where('subcategory', '==', filters.subcategory)
+      if (filters.status) baseQuery = baseQuery.where('status', '==', filters.status)
+      if (filters.subscription) baseQuery = baseQuery.where('subscription', '==', filters.subscription)
+      if (filters.department) baseQuery = baseQuery.where('department', '==', filters.department)
       
-      // Add ordering
-      query = query.orderBy('createdAt', 'desc')
+      // Get total count for pagination (this will be expensive for large datasets)
+      // In production, consider caching this or using approximate counts
+      const countSnapshot = await baseQuery.get()
+      let totalUsers = countSnapshot.size
       
-      const snapshot = await query.get()
+      // Apply text search filter to count if provided (note: this is client-side filtering)
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
+        const allUsers = countSnapshot.docs.map((doc: any) => {
+          const data = doc.data()
+          return {
+            name: data.name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            location: data.location || ''
+          }
+        })
+        
+        const filteredUsers = allUsers.filter((user: any) => 
+          user.name.toLowerCase().includes(searchTerm) ||
+          user.email.toLowerCase().includes(searchTerm) ||
+          user.phone.toLowerCase().includes(searchTerm) ||
+          user.location.toLowerCase().includes(searchTerm)
+        )
+        totalUsers = filteredUsers.length
+      }
+      
+      total = totalUsers
+      
+      // Build paginated query
+      let paginatedQuery = baseQuery.orderBy('createdAt', 'desc')
+      
+      // Apply pagination
+      if (paginationParams.page > 1) {
+        const offset = (paginationParams.page - 1) * paginationParams.limit
+        paginatedQuery = paginatedQuery.offset(offset)
+      }
+      
+      paginatedQuery = paginatedQuery.limit(paginationParams.limit)
+      
+      const snapshot = await paginatedQuery.get()
       
       users = snapshot.docs.map((doc: any) => {
         const data = doc.data() as any
@@ -236,49 +310,81 @@ export async function GET(request: NextRequest) {
       })
       
       // Apply text search filter if provided (client-side filtering)
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase()
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
         users = users.filter((user: any) => 
-          user.name?.toLowerCase().includes(search) ||
-          user.email?.toLowerCase().includes(search) ||
-          user.phone?.toLowerCase().includes(search) ||
-          user.location?.toLowerCase().includes(search)
+          user.name?.toLowerCase().includes(searchTerm) ||
+          user.email?.toLowerCase().includes(searchTerm) ||
+          user.phone?.toLowerCase().includes(searchTerm) ||
+          user.location?.toLowerCase().includes(searchTerm)
         )
       }
     } catch (error) {
       // Fallback to client SDK methods if Admin SDK not available
-      const { collection, getDocs, query, where, orderBy } = await import('firebase/firestore')
+      const { collection, getDocs, query, where, orderBy, limit } = await import('firebase/firestore')
       
       const db = await getAdminDb()
       const usersRef = collection(db, 'users')
       let constraints: any[] = []
       
-      // Apply filters from query parameters
-      const role = searchParams.get('role')
-      const category = searchParams.get('category')
-      const subcategory = searchParams.get('subcategory')
-      const status = searchParams.get('status')
-      const subscription = searchParams.get('subscription')
-      const department = searchParams.get('department')
-      const searchTerm = searchParams.get('search')
-      
-      if (role) constraints.push(where('role', '==', role))
-      if (category) constraints.push(where('category', '==', category))
-      if (subcategory) constraints.push(where('subcategory', '==', subcategory))
-      if (status) constraints.push(where('status', '==', status))
-      if (subscription) constraints.push(where('subscription', '==', subscription))
-      if (department) constraints.push(where('department', '==', department))
+      if (filters.role) constraints.push(where('role', '==', filters.role))
+      if (filters.category) constraints.push(where('category', '==', filters.category))
+      if (filters.subcategory) constraints.push(where('subcategory', '==', filters.subcategory))
+      if (filters.status) constraints.push(where('status', '==', filters.status))
+      if (filters.subscription) constraints.push(where('subscription', '==', filters.subscription))
+      if (filters.department) constraints.push(where('department', '==', filters.department))
       
       // Add ordering
       constraints.push(orderBy('createdAt', 'desc'))
       
-      // Build query
-      const usersQuery = constraints.length > 0 
-        ? query(usersRef, ...constraints)
+      // Get total count first (for client SDK, we need to get all to count)
+      const countQuery = constraints.length > 0 
+        ? query(usersRef, ...constraints.slice(0, -1)) // Remove orderBy for count
         : usersRef
       
-      const snapshot = await getDocs(usersQuery)
-      users = snapshot.docs.map((doc: any) => {
+      const countSnapshot = await getDocs(countQuery)
+      let totalUsers = countSnapshot.size
+      
+      // Apply text search filter to count if provided
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
+        const allUsers = countSnapshot.docs.map((doc: any) => {
+          const data = doc.data()
+          return {
+            name: data.name || '',
+            email: data.email || '',
+            phone: data.phone || '',
+            location: data.location || ''
+          }
+        })
+        
+        const filteredUsers = allUsers.filter((user: any) => 
+          user.name.toLowerCase().includes(searchTerm) ||
+          user.email.toLowerCase().includes(searchTerm) ||
+          user.phone.toLowerCase().includes(searchTerm) ||
+          user.location.toLowerCase().includes(searchTerm)
+        )
+        totalUsers = filteredUsers.length
+      }
+      
+      total = totalUsers
+      
+      // Build paginated query
+      let paginatedConstraints = [...constraints]
+      
+      // Apply pagination using limit and offset simulation
+      if (paginationParams.page > 1) {
+        // For client SDK, we'll use startAfter with a document snapshot approach
+        // This is a simplified version - for production, implement proper cursor pagination
+        const offset = (paginationParams.page - 1) * paginationParams.limit
+        // Note: Firestore client SDK doesn't have offset, so we'll limit the results and skip in memory
+        // This is not ideal for large datasets - consider using cursor-based pagination
+      }
+      
+      const paginatedQuery = query(usersRef, ...paginatedConstraints, limit(paginationParams.limit * paginationParams.page))
+      const snapshot = await getDocs(paginatedQuery)
+      
+      let allUsers = snapshot.docs.map((doc: any) => {
         const data = doc.data() as any
         return {
           id: doc.id,
@@ -289,19 +395,56 @@ export async function GET(request: NextRequest) {
         }
       })
       
-      // Apply text search filter if provided (client-side filtering)
-      if (searchTerm) {
-        const search = searchTerm.toLowerCase()
-        users = users.filter((user: any) => 
-          user.name?.toLowerCase().includes(search) ||
-          user.email?.toLowerCase().includes(search) ||
-          user.phone?.toLowerCase().includes(search) ||
-          user.location?.toLowerCase().includes(search)
+      // Apply text search filter if provided
+      if (filters.search) {
+        const searchTerm = filters.search.toLowerCase()
+        allUsers = allUsers.filter((user: any) => 
+          user.name?.toLowerCase().includes(searchTerm) ||
+          user.email?.toLowerCase().includes(searchTerm) ||
+          user.phone?.toLowerCase().includes(searchTerm) ||
+          user.location?.toLowerCase().includes(searchTerm)
         )
       }
+      
+      // Apply pagination (simulate offset)
+      const startIndex = (paginationParams.page - 1) * paginationParams.limit
+      const endIndex = startIndex + paginationParams.limit
+      users = allUsers.slice(startIndex, endIndex)
     }
 
-    return NextResponse.json({ users })
+    // Calculate pagination info
+    const pagination = calculatePagination(
+      paginationParams.page,
+      paginationParams.limit,
+      total,
+      false, // hasMore - will be calculated based on total
+      users.length > 0 ? users[users.length - 1].id : undefined, // nextCursor
+      users.length > 0 ? users[0].id : undefined // prevCursor
+    )
+    
+    // Create paginated response
+    const response: PaginatedResponse<any> = {
+      data: users,
+      pagination,
+      filters: {
+        role: filters.role || undefined,
+        category: filters.category || undefined,
+        status: filters.status || undefined,
+        search: filters.search || undefined,
+        department: filters.department || undefined,
+        subscription: filters.subscription || undefined
+      }
+    }
+    
+    // Cache the result
+    CacheManager.set('usersList', cacheKey, response, CacheConfigs.usersList)
+    
+    return NextResponse.json(response, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60',
+        'X-Cache': 'MISS'
+      }
+    })
 
   } catch (error) {
     console.error('Error fetching users:', error)

@@ -1,5 +1,4 @@
 "use client"
-
 import { useSession } from "next-auth/react"
 import { redirect, useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -32,7 +31,7 @@ import {
   ChevronUp,
   ChevronRight
 } from "lucide-react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import React from "react"
 import { UserProvider, useUserContext } from "@/components/providers/user-provider"
 import { UserFilters } from "@/lib/types/user"
@@ -46,27 +45,46 @@ import {
 } from "@/components/ui/dropdown-menu"
 // import { CreateUserDialog } from "@/components/user-management/create-user-dialog"
 import { Skeleton } from "@/components/ui/skeleton"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { usePaginatedUsers } from "@/hooks/usePaginatedUsers"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 function AllUsersContent() {
   const { data: session, status } = useSession()
   const router = useRouter()
-  const { users, usersLoading, usersError, setActive, setInactive, suspendFor, refetchUsers } = useUserContext()
+  const { setActive, setInactive, suspendFor } = useUserContext()
+  
+  // Use the new paginated users hook
+  const {
+    users,
+    pagination,
+    filters,
+    loading,
+    error,
+    setPage,
+    setLimit,
+    setFilters,
+    refreshUsers
+  } = usePaginatedUsers({
+    initialLimit: 10
+  })
+  
   const [searchTerm, setSearchTerm] = useState("")
   const [filterRole, setFilterRole] = useState("all")
   const [filterStatus, setFilterStatus] = useState("all")
-  const [sortKey, setSortKey] = useState<"name" | "role" | "category" | "status" | "lastLogin" | "createdAt">("name")
-  const [sortDir, setSortDir] = useState<"asc" | "desc">("asc")
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null)
   const [filtersExpanded, setFiltersExpanded] = useState(false)
-
-  const toggleSort = (key: typeof sortKey) => {
-    if (sortKey === key) {
-      setSortDir(prev => (prev === "asc" ? "desc" : "asc"))
-    } else {
-      setSortKey(key)
-      setSortDir("asc")
-    }
-  }
+  
+  // Update filters when local state changes
+  useEffect(() => {
+    const newFilters: any = {}
+    
+    if (searchTerm.trim()) newFilters.search = searchTerm.trim()
+    if (filterRole !== "all") newFilters.role = filterRole
+    if (filterStatus !== "all") newFilters.status = filterStatus
+    
+    setFilters(newFilters)
+  }, [searchTerm, filterRole, filterStatus, setFilters])
 
 // Format date helper function
 const formatDate = (dateValue: any) => {
@@ -127,7 +145,7 @@ const getRoleColor = (role: string) => {
   }
 }
 
-  if (status === "loading" || usersLoading) {
+  if (status === "loading" || loading) {
     return (
       <MainLayout>
         <div className="container mx-auto space-y-6">
@@ -195,48 +213,20 @@ const getRoleColor = (role: string) => {
     redirect("/user-management")
   }
 
-  // Filter users based on search term, role filter, and status
-  const filteredUsers = users.filter(user => {
-    const matchesSearch = user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = filterRole === "all" || user.role === filterRole
-    const matchesStatus = filterStatus === "all" || user.status === filterStatus
-    return matchesSearch && matchesRole && matchesStatus
-  })
-
-  // Sort users according to selected key and direction
-  const sortedUsers = [...filteredUsers].sort((a, b) => {
-    const dir = sortDir === "asc" ? 1 : -1
-    switch (sortKey) {
-      case "name":
-        return a.name.localeCompare(b.name) * dir
-      case "role":
-        return a.role.localeCompare(b.role) * dir
-      case "category":
-        return a.category.localeCompare(b.category) * dir
-      case "status":
-        return a.status.localeCompare(b.status) * dir
-      case "lastLogin": {
-        // Handle potentially undefined lastLogin values
-        const aDate = a.lastLogin ? new Date(a.lastLogin).getTime() : 0
-        const bDate = b.lastLogin ? new Date(b.lastLogin).getTime() : 0
-        return (aDate - bDate) * dir
-      }
-      case "createdAt": {
-        // Handle potentially undefined createdAt values (defensive coding)
-        const aDate = a.createdAt ? new Date(a.createdAt).getTime() : 0
-        const bDate = b.createdAt ? new Date(b.createdAt).getTime() : 0
-        return (aDate - bDate) * dir
-      }
-      default:
-        return 0
-    }
-  })
-
+  // Get unique roles for filter dropdown
   const uniqueRoles = Array.from(new Set(users.map(user => user.role)))
 
-  if (usersError) {
-    return <div>Error: {usersError}</div>
+  if (error) {
+    return (
+      <MainLayout>
+        <div className="container mx-auto space-y-6">
+          <div className="text-center py-8">
+            <p className="text-red-600">Error loading users: {error}</p>
+            <Button onClick={refreshUsers} className="mt-4">Try Again</Button>
+          </div>
+        </div>
+      </MainLayout>
+    )
   }
 
   return (
@@ -246,7 +236,7 @@ const getRoleColor = (role: string) => {
         <div>
           <h1 className="text-xl md:text-2xl font-bold flex items-center gap-2">
             <Users className="h-4 w-4 md:h-6 md:w-6" />
-            All Users {users.length}
+            All Users ({pagination.total})
           </h1>
           <p className="text-muted-foreground text-sm md:text-base">
             Showing all users across all categories
@@ -327,36 +317,19 @@ const getRoleColor = (role: string) => {
               </select>
             </div>
             
-            {/* Sort By */}
+            {/* Sort By - Remove until server-side sorting is implemented */}
             <div className="min-w-[160px]">
-              <select
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as any)}
-                className="w-full h-9 px-3 py-1 border border-input bg-background rounded-md text-sm"
-              >
-                <option value="name">Sort by</option>
-                <option value="name">Name</option>
-                <option value="role">Role</option>
-                <option value="status">Status</option>
-                <option value="lastLogin">Last Login</option>
-                <option value="createdAt">Created</option>
-              </select>
+              <div className="w-full h-9 px-3 py-1 border border-input bg-gray-50 rounded-md text-sm flex items-center">
+                <span className="text-muted-foreground">Sort (Coming Soon)</span>
+              </div>
             </div>
             
-            {/* Sort Direction */}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => setSortDir(prev => prev === "asc" ? "desc" : "asc")}
-              className="h-9 px-2 min-w-[40px] flex items-center justify-center"
-              title={`Sort ${sortDir === "asc" ? "Ascending" : "Descending"}`}
-            >
-              {sortDir === "asc" ? (
-                <ArrowUpDown className="h-4 w-4 rotate-0" />
-              ) : (
-                <ArrowUpDown className="h-4 w-4 rotate-180" />
-              )}
-            </Button>
+            {/* Sort Direction - Remove until server-side sorting is implemented */}
+            <div className="min-w-[40px]">
+              <div className="w-full h-9 px-2 border border-input bg-gray-50 rounded-md flex items-center justify-center">
+                <ArrowUpDown className="h-4 w-4 text-muted-foreground" />
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -375,29 +348,17 @@ const getRoleColor = (role: string) => {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>
-                    <button className="inline-flex items-center" onClick={() => toggleSort("name")}>User <ArrowUpDown className="ml-1 h-3 w-3" /></button>
-                  </TableHead>
-                  <TableHead>
-                    <button className="inline-flex items-center" onClick={() => toggleSort("role")}>Role <ArrowUpDown className="ml-1 h-3 w-3" /></button>
-                  </TableHead>
-                  <TableHead>
-                    <button className="inline-flex items-center" onClick={() => toggleSort("category")}>Category <ArrowUpDown className="ml-1 h-3 w-3" /></button>
-                  </TableHead>
-                  <TableHead>
-                    <button className="inline-flex items-center" onClick={() => toggleSort("status")}>Status <ArrowUpDown className="ml-1 h-3 w-3" /></button>
-                  </TableHead>
-                  <TableHead>
-                    <button className="inline-flex items-center" onClick={() => toggleSort("lastLogin")}>Last Login <ArrowUpDown className="ml-1 h-3 w-3" /></button>
-                  </TableHead>
-                  <TableHead>
-                    <button className="inline-flex items-center" onClick={() => toggleSort("createdAt")}>Created <ArrowUpDown className="ml-1 h-3 w-3" /></button>
-                  </TableHead>
+                  <TableHead>User</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead>Category</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Last Login</TableHead>
+                  <TableHead>Created</TableHead>
                   <TableHead className="w-[50px]">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sortedUsers.map((user) => (
+                {users.map((user) => (
                   <React.Fragment key={user.id}>
                     <TableRow>
                     <TableCell>
@@ -466,8 +427,8 @@ const getRoleColor = (role: string) => {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56">
-                            <DropdownMenuItem onClick={async () => { await setActive(user.id); refetchUsers(); }}>Activate</DropdownMenuItem>
-                            <DropdownMenuItem onClick={async () => { await setInactive(user.id); refetchUsers(); }}>Deactivate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { await setActive(user.id); refreshUsers(); }}>Activate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { await setInactive(user.id); refreshUsers(); }}>Deactivate</DropdownMenuItem>
                             <div className="px-2 py-1 text-xs text-muted-foreground">Suspend</div>
                             {[
                               { label: '1 Day', days: 1 },
@@ -482,7 +443,7 @@ const getRoleColor = (role: string) => {
                                 const until = new Date();
                                 until.setDate(until.getDate() + opt.days);
                                 await suspendFor(user.id, until);
-                                refetchUsers();
+                                refreshUsers();
                               }}>{opt.label}</DropdownMenuItem>
                             ))}
                           </DropdownMenuContent>
@@ -630,7 +591,7 @@ const getRoleColor = (role: string) => {
 
           {/* Mobile Card View */}
           <div className="md:hidden space-y-4">
-            {sortedUsers.map((user) => (
+            {users.map((user) => (
               <Card key={user.id} className="relative">
                 <CardContent className="p-4">
                   <div className="space-y-3">
@@ -666,8 +627,8 @@ const getRoleColor = (role: string) => {
                               <Edit className="h-4 w-4 mr-2" />
                               Edit
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={async () => { await setActive(user.id); refetchUsers(); }}>Activate</DropdownMenuItem>
-                            <DropdownMenuItem onClick={async () => { await setInactive(user.id); refetchUsers(); }}>Deactivate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { await setActive(user.id); refreshUsers(); }}>Activate</DropdownMenuItem>
+                            <DropdownMenuItem onClick={async () => { await setInactive(user.id); refreshUsers(); }}>Deactivate</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </div>
@@ -753,6 +714,18 @@ const getRoleColor = (role: string) => {
           </div>
         </CardContent>
       </Card>
+      
+      {/* Pagination */}
+      <DataPagination
+        currentPage={pagination.page}
+        totalPages={pagination.totalPages}
+        totalItems={pagination.total}
+        itemsPerPage={pagination.limit}
+        hasNext={pagination.hasNext}
+        hasPrev={pagination.hasPrev}
+        onPageChange={setPage}
+        onItemsPerPageChange={setLimit}
+      />
       </div>
     </MainLayout>
   )

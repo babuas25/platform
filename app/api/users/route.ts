@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
-import { adminDb } from '@/lib/firebase-admin'
+import { getAdminDb } from '@/lib/firebase-admin'
 import { canManageRole, getManageableRoles, UserRole } from '@/lib/rbac'
 
 export async function POST(request: NextRequest) {
@@ -30,7 +30,8 @@ export async function POST(request: NextRequest) {
 
     // Check if user already exists
     try {
-      const userRef = adminDb.collection('users').doc(email) // Using email as document ID
+      const db = await getAdminDb()
+      const userRef = db.collection('users').doc(email) // Using email as document ID
       const existingUser = await userRef.get()
       
       if (existingUser.exists) {
@@ -39,7 +40,8 @@ export async function POST(request: NextRequest) {
     } catch (error) {
       // Fallback to client SDK methods if Admin SDK not available
       const { doc, getDoc } = await import('firebase/firestore')
-      const userRef = doc(adminDb, 'users', email)
+      const db = await getAdminDb()
+      const userRef = doc(db, 'users', email)
       const existingUser = await getDoc(userRef)
       
       if (existingUser.exists()) {
@@ -140,12 +142,14 @@ export async function POST(request: NextRequest) {
 
     // Create the user document
     try {
-      const userRef = adminDb.collection('users').doc(email)
+      const db = await getAdminDb()
+      const userRef = db.collection('users').doc(email)
       await userRef.set(userData)
     } catch (error) {
       // Fallback to client SDK methods if Admin SDK not available
       const { doc, setDoc } = await import('firebase/firestore')
-      const userRef = doc(adminDb, 'users', email)
+      const db = await getAdminDb()
+      const userRef = doc(db, 'users', email)
       await setDoc(userRef, userData)
     }
 
@@ -195,7 +199,8 @@ export async function GET(request: NextRequest) {
     let users: any[] = []
     
     try {
-      const usersRef = adminDb.collection('users')
+      const db = await getAdminDb()
+      const usersRef = db.collection('users')
       let query: any = usersRef
       
       // Apply filters from query parameters
@@ -244,7 +249,8 @@ export async function GET(request: NextRequest) {
       // Fallback to client SDK methods if Admin SDK not available
       const { collection, getDocs, query, where, orderBy } = await import('firebase/firestore')
       
-      const usersRef = collection(adminDb, 'users')
+      const db = await getAdminDb()
+      const usersRef = collection(db, 'users')
       let constraints: any[] = []
       
       // Apply filters from query parameters

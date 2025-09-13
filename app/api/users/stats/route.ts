@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
-import { adminDb } from '@/lib/firebase-admin'
+import { getAdminDb } from '@/lib/firebase-admin'
 import { UserRole } from '@/lib/rbac'
 
 export async function GET(request: NextRequest) {
@@ -18,13 +18,15 @@ export async function GET(request: NextRequest) {
     let users: any[] = []
     
     try {
-      const usersRef = adminDb.collection('users')
+      const db = await getAdminDb()
+      const usersRef = db.collection('users')
       const snapshot = await usersRef.get()
       users = snapshot.docs.map((doc: any) => doc.data())
     } catch (error) {
       // Fallback to client SDK methods if Admin SDK not available
       const { collection, getDocs } = await import('firebase/firestore')
-      const usersRef = collection(adminDb, 'users')
+      const db = await getAdminDb()
+      const usersRef = collection(db, 'users')
       const snapshot = await getDocs(usersRef)
       users = snapshot.docs.map((doc: any) => doc.data())
     }

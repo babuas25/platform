@@ -1,6 +1,5 @@
 import { initializeApp, getApps, cert, getApp } from 'firebase-admin/app'
 import { getFirestore } from 'firebase-admin/firestore'
-import { db } from './firebase' // Fallback to client SDK
 
 // Firebase Admin SDK configuration for server-side operations
 const initializeFirebaseAdmin = () => {
@@ -41,23 +40,82 @@ const initializeFirebaseAdmin = () => {
   throw new Error('Firebase Admin SDK requires service account credentials in production')
 }
 
-// Initialize Firebase Admin with fallback
+// Lazy initialization - only initialize when needed
 let adminApp: any = null
-let adminDb: any = null
+let adminDbInstance: any = null
+let initializationError: Error | null = null
 
-try {
-  adminApp = initializeFirebaseAdmin()
-  adminDb = getFirestore(adminApp)
-  console.log('✅ Firebase Admin SDK initialized successfully')
-} catch (error) {
-  console.warn('⚠️ Firebase Admin SDK failed to initialize, falling back to client SDK:', error)
-  // In development, we can fall back to client SDK for testing
-  if (process.env.NODE_ENV === 'development') {
-    adminDb = db // Use client SDK as fallback
-    console.log('🔄 Using client SDK as fallback in development')
-  } else {
-    throw error
+// Function to get admin database with lazy initialization
+const getAdminDb = async () => {
+  // Return cached instance if available
+  if (adminDbInstance && !initializationError) {
+    return adminDbInstance
   }
+
+  // Try to initialize if not already attempted
+  if (!adminApp && !initializationError) {
+    try {
+      adminApp = initializeFirebaseAdmin()
+      adminDbInstance = getFirestore(adminApp)
+      console.log('✅ Firebase Admin SDK initialized successfully')
+      return adminDbInstance
+    } catch (error) {
+      initializationError = error as Error
+      console.warn('⚠️ Firebase Admin SDK failed to initialize:', error)
+      
+      // In development or build time, fall back to client SDK
+      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
+        try {
+          // Dynamic import to avoid build-time issues
+          const { db } = await import('./firebase')
+          adminDbInstance = db
+          console.log('🔄 Using client SDK as fallback')
+          return adminDbInstance
+        } catch (clientError) {
+          console.error('❌ Both Admin and Client SDK failed:', clientError)
+          throw new Error('Firebase initialization failed completely')
+        }
+      }
+      
+      throw error
+    }
+  }
+
+  // If we have an initialization error, try client SDK fallback
+  if (initializationError) {
+    try {
+      const { db } = await import('./firebase')
+      return db
+    } catch (clientError) {
+      console.error('❌ Client SDK fallback failed:', clientError)
+      throw initializationError
+    }
+  }
+
+  return adminDbInstance
 }
 
-export { adminApp, adminDb }
+// Export the lazy getter function and a direct reference for compatibility
+export { adminApp }
+export { getAdminDb }
+
+// For backward compatibility, provide adminDb that initializes lazily
+export const adminDb = new Proxy({}, {
+  get: function(target, prop) {
+    // Return a promise-based method for async operations
+    if (typeof prop === 'string' && ['collection', 'doc', 'runTransaction', 'batch'].includes(prop)) {
+      return function(...args: any[]) {
+        return getAdminDb().then(db => {
+          const method = (db as any)[prop]
+          if (typeof method === 'function') {
+            return method.apply(db, args)
+          }
+          return (db as any)[prop]
+        })
+      }
+    }
+    
+    // For other properties, return a promise
+    return getAdminDb().then(db => (db as any)[prop])
+  }
+})

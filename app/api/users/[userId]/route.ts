@@ -1,22 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth-options'
-import { adminDb } from '@/lib/firebase-admin'
+import { getAdminDb } from '@/lib/firebase-admin'
 import { canManageRole, UserRole } from '@/lib/rbac'
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const session = await getServerSession(authOptions as any) as any
-    
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-    }
-
     const { userId } = await params
-    const userRef = adminDb.collection('users').doc(userId)
+    const db = await getAdminDb()
+    const userRef = db.collection('users').doc(userId)
     const userSnap = await userRef.get()
     
     if (!userSnap.exists) {
@@ -45,10 +37,7 @@ export async function GET(
   }
 }
 
-export async function PATCH(
-  request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
-) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
     const session = await getServerSession(authOptions as any) as any
     
@@ -58,10 +47,11 @@ export async function PATCH(
 
     const currentUserRole = (session.user as any)?.role as UserRole
     const { userId } = await params
+    const db = await getAdminDb()
+    const userRef = db.collection('users').doc(userId)
     const updateData = await request.json()
 
     // Get the current user data
-    const userRef = adminDb.collection('users').doc(userId)
     const userSnap = await userRef.get()
     
     if (!userSnap.exists) {
@@ -130,10 +120,7 @@ export async function PATCH(
   }
 }
 
-export async function DELETE(
-  request: NextRequest,
-  { params }: { params: Promise<{ userId: string }> }
-) {
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ userId: string }> }) {
   try {
     const session = await getServerSession(authOptions as any) as any
     
@@ -143,9 +130,10 @@ export async function DELETE(
 
     const currentUserRole = (session.user as any)?.role as UserRole
     const { userId } = await params
+    const db = await getAdminDb()
+    const userRef = db.collection('users').doc(userId)
 
     // Get the current user data
-    const userRef = adminDb.collection('users').doc(userId)
     const userSnap = await userRef.get()
     
     if (!userSnap.exists) {

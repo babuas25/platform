@@ -63,13 +63,19 @@ const getAdminDb = async () => {
       initializationError = error as Error
       console.warn('⚠️ Firebase Admin SDK failed to initialize:', error)
       
-      // In development or build time, fall back to client SDK
-      if (process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'production') {
+      // In production, if Admin SDK fails, we need to return an error
+      // Don't try to fallback to client SDK as it won't work server-side
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('Firebase Admin SDK is required for server-side operations in production')
+      }
+      
+      // In development, try client SDK fallback
+      if (process.env.NODE_ENV === 'development') {
         try {
           // Dynamic import to avoid build-time issues
           const { db } = await import('./firebase')
           adminDbInstance = db
-          console.log('🔄 Using client SDK as fallback')
+          console.log('🔄 Using client SDK as fallback in development')
           return adminDbInstance
         } catch (clientError) {
           console.error('❌ Both Admin and Client SDK failed:', clientError)
@@ -81,8 +87,13 @@ const getAdminDb = async () => {
     }
   }
 
-  // If we have an initialization error, try client SDK fallback
+  // If we have an initialization error and we're in production, throw it
   if (initializationError) {
+    if (process.env.NODE_ENV === 'production') {
+      throw initializationError
+    }
+    
+    // In development, try client SDK fallback
     try {
       const { db } = await import('./firebase')
       return db

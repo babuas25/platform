@@ -78,8 +78,36 @@ export async function GET(request: NextRequest) {
 
   } catch (error) {
     console.error('Error fetching user stats:', error)
+    
+    // If Firebase is not available, return sample stats
+    if (error instanceof Error && error.message.includes('Firebase Admin SDK')) {
+      console.log('Returning sample stats due to Firebase unavailability')
+      
+      const sampleStats = {
+        total: 1,
+        active: 1,
+        inactive: 0,
+        pending: 0,
+        suspended: 0,
+        recentUsers: 1,
+        roleStats: {
+          'SuperAdmin': 1
+        },
+        categoryStats: {
+          'Admin': 1
+        },
+        lastUpdated: new Date().toISOString(),
+        message: 'Using sample data - Firebase not configured'
+      }
+      
+      return NextResponse.json(sampleStats)
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to fetch user statistics' },
+      { 
+        error: 'Failed to fetch user statistics',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     )
   }

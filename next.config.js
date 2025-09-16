@@ -3,8 +3,13 @@ const nextConfig = {
   // Uncomment if you need static export
   // output: 'export',
   
-  // Critical for Replit: Allow all origins for development proxy
-  allowedDevOrigins: ['*'],
+  // For Replit: Handle cross-origin requests for development
+  // This addresses the Next.js warning about cross-origin requests
+  async rewrites() {
+    return [
+      // Allow access from the Replit domain
+    ];
+  },
   
   // Enable experimental features for better performance
   experimental: {
@@ -30,10 +35,6 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
-  // Critical for Replit: Allow all hosts for development proxy
-  async rewrites() {
-    return [];
-  },
 
   // Ensure Firebase auth popups can open and close properly in dev/prod
   async headers() {

@@ -27,35 +27,42 @@ export function middleware(request: NextRequest) {
     )
     response.headers.set('Expires', new Date(Date.now() + 86400 * 1000).toUTCString())
   } else if (pathname.startsWith('/api/')) {
-    // API routes: handled by individual API caching
-    // Set default headers for security and performance
-    response.headers.set('X-Content-Type-Options', 'nosniff')
-    response.headers.set('X-Frame-Options', 'DENY')
-    response.headers.set('X-XSS-Protection', '1; mode=block')
-  } else if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/user-management')) {
-    // Dynamic pages: short-term caching with revalidation
+    // API routes: No caching for security, individual routes can override if needed
     response.headers.set(
       'Cache-Control',
-      'public, max-age=60, stale-while-revalidate=300'
+      'private, no-cache, no-store, must-revalidate'
     )
+    response.headers.set('Expires', '0')
+    response.headers.set('Pragma', 'no-cache')
+  } else if (pathname === '/' || pathname.startsWith('/admin') || pathname.startsWith('/user-management') || pathname.startsWith('/dashboard')) {
+    // Dynamic pages with potential authentication: No public caching for security
+    response.headers.set(
+      'Cache-Control',
+      'private, no-cache, no-store, must-revalidate'
+    )
+    response.headers.set('Expires', '0')
+    response.headers.set('Pragma', 'no-cache')
   } else {
-    // Default caching for other pages
+    // Default caching for other pages (public content only)
     response.headers.set(
       'Cache-Control',
       'public, max-age=300, stale-while-revalidate=600'
     )
   }
 
+  // Apply comprehensive security headers to all routes
+  response.headers.set('X-Content-Type-Options', 'nosniff')
+  response.headers.set('X-Frame-Options', 'DENY')
+  response.headers.set('X-XSS-Protection', '1; mode=block')
+  response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin')
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+
   // Performance and security headers
   response.headers.set('X-Powered-By', '') // Remove X-Powered-By header
   response.headers.set('Server', '') // Remove Server header
   
-  // Compression hints for CDN
-  if (request.headers.get('accept-encoding')?.includes('br')) {
-    response.headers.set('Content-Encoding', 'br')
-  } else if (request.headers.get('accept-encoding')?.includes('gzip')) {
-    response.headers.set('Content-Encoding', 'gzip')
-  }
+  // Remove dangerous Content-Encoding headers - these should be handled by the server/CDN automatically
+  // Setting Content-Encoding manually can corrupt responses and break the application
 
   // CDN optimization headers
   response.headers.set('Vary', 'Accept-Encoding, Accept-Language')

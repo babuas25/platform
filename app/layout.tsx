@@ -66,7 +66,7 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${GeistSans.variable} ${nordiquePro.variable}`}>
       <head></head>
-      <body className={`${GeistSans.className} font-sans`}>
+      <body className={`${GeistSans.className} font-sans`} suppressHydrationWarning>
         <AuthProvider>
           <ThemeProvider
             attribute="class"
@@ -74,7 +74,9 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
+            <div suppressHydrationWarning>
+              {children}
+            </div>
           </ThemeProvider>
         </AuthProvider>
       </body>

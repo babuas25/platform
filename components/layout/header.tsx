@@ -118,14 +118,11 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             aria-label="Toggle theme"
           >
             <div className="relative w-5 h-5" suppressHydrationWarning>
-              {!mounted ? (
-                // Show neutral state during SSR to prevent hydration mismatch
-                <Sun className="absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out rotate-0 scale-100 opacity-100" />
-              ) : (
-                <>
-                  <Sun className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-                  <Moon className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
-                </>
+              {/* Always show Sun icon in same position to prevent hydration mismatch */}
+              <Sun className="h-5 w-5" />
+              {/* Moon hidden during SSR - only show when mounted and theme is dark */}
+              {mounted && theme === "dark" && (
+                <Moon className="absolute top-0 left-0 h-5 w-5 transition-all duration-200" />
               )}
             </div>
           </Button>
@@ -165,37 +162,44 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             )}
           </div>
 
-          {/* Mobile user menu - show below md */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
-                <User className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-44 md:hidden">
-              {!mounted || status === 'loading' ? (
-                <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-              ) : (session?.user?.email) ? (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
-                    Sign out
-                  </DropdownMenuItem>
-                </>
-              ) : (
-                <>
-                  <DropdownMenuItem asChild>
-                    <Link href="/auth?mode=sign-in">Sign In</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/auth?mode=register">Registration</Link>
-                  </DropdownMenuItem>
-                </>
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Mobile user menu - only render DropdownMenu when mounted to prevent hydration mismatch */}
+          {!mounted ? (
+            // Show plain button during SSR to prevent Radix attribute mismatch
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu" disabled>
+              <User className="h-5 w-5" />
+            </Button>
+          ) : (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
+                  <User className="h-5 w-5" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-44 md:hidden">
+                {status === 'loading' ? (
+                  <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+                ) : (session?.user?.email) ? (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/dashboard">Dashboard</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
+                      Sign out
+                    </DropdownMenuItem>
+                  </>
+                ) : (
+                  <>
+                    <DropdownMenuItem asChild>
+                      <Link href="/auth?mode=sign-in">Sign In</Link>
+                    </DropdownMenuItem>
+                    <DropdownMenuItem asChild>
+                      <Link href="/auth?mode=register">Registration</Link>
+                    </DropdownMenuItem>
+                  </>
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
       </div>
     </header>

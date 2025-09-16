@@ -13,9 +13,8 @@ export function AuthProvider({ children, session }: AuthProviderProps) {
   return (
     <SessionProvider 
       session={session}
-      refetchInterval={5 * 60} // Refetch session every 5 minutes
-      refetchOnWindowFocus={false} // Don't refetch on window focus to prevent unnecessary hydration updates
-      refetchOnMount={false} // Don't refetch on mount to prevent hydration mismatch
+      refetchOnWindowFocus={false} // Don't refetch on window focus
+      refetchInterval={0} // Disable periodic refetch to prevent state transitions
     >
       {children}
     </SessionProvider>

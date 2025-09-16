@@ -164,8 +164,8 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
 
           {/* Mobile user menu - only render DropdownMenu when mounted to prevent hydration mismatch */}
           {!mounted ? (
-            // Show plain button during SSR to prevent Radix attribute mismatch
-            <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu" disabled>
+            // Show plain button during SSR with consistent attributes
+            <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
               <User className="h-5 w-5" />
             </Button>
           ) : (

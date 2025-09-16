@@ -1,18 +1,10 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import dynamic from "next/dynamic"
+import { useState } from "react"
+import { Header } from "./header"
+import { Sidebar } from "./sidebar"
+import { ClientOnly } from "@/components/providers/client-only-provider"
 import { cn } from "@/lib/utils"
-
-// Dynamically import components with SSR disabled to prevent hydration issues
-const Header = dynamic(() => import("./header").then(mod => ({ default: mod.Header })), {
-  ssr: false,
-  loading: () => <div className="fixed top-0 left-0 right-0 h-14 bg-background border-b z-50"></div>
-})
-
-const Sidebar = dynamic(() => import("./sidebar").then(mod => ({ default: mod.Sidebar })), {
-  ssr: false
-})
 
 interface MainLayoutProps {
   children: React.ReactNode
@@ -35,29 +27,51 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
     setSidebarCollapsed(!sidebarCollapsed)
   }
 
-  return (
+  // Server-safe fallback that matches what the client will initially render
+  const ServerFallback = () => (
     <div className="min-h-screen bg-background">
-      <Header onSidebarToggle={toggleSidebar} isSidebarOpen={sidebarOpen} sidebarCollapsed={sidebarCollapsed} />
-      
-      <div className="pt-14"> 
-        <Sidebar 
-          isOpen={sidebarOpen} 
-          onClose={closeSidebar} 
-          isCollapsed={sidebarCollapsed}
-          onToggleCollapse={toggleSidebarCollapse}
-        />
-        
-        {/* Main content - adjust margin based on sidebar state */}
-        <main className={cn(
-          "min-h-[calc(100vh-3.5rem)] overflow-x-auto transition-[margin] duration-200 ease-in-out",
-          sidebarCollapsed ? "lg:ml-[81px]" : "lg:ml-[256px]",
-          "ml-0" // No margin on mobile
-        )}>
+      <div className="fixed top-0 left-0 right-0 h-14 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b z-50">
+        <div className="flex h-14 items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center">
+            <h1 className="font-bold font-nordique-pro w-[118px] h-6 flex items-center text-base leading-none">AppDashboard</h1>
+          </div>
+        </div>
+      </div>
+      <div className="pt-14">
+        <main className="min-h-[calc(100vh-3.5rem)] overflow-x-auto lg:ml-[81px] ml-0">
           <div className={cn("p-6 w-full", contentClassName)}>
             {children}
           </div>
         </main>
       </div>
     </div>
+  )
+
+  return (
+    <ClientOnly fallback={<ServerFallback />}>
+      <div className="min-h-screen bg-background">
+        <Header onSidebarToggle={toggleSidebar} isSidebarOpen={sidebarOpen} sidebarCollapsed={sidebarCollapsed} />
+        
+        <div className="pt-14"> 
+          <Sidebar 
+            isOpen={sidebarOpen} 
+            onClose={closeSidebar} 
+            isCollapsed={sidebarCollapsed}
+            onToggleCollapse={toggleSidebarCollapse}
+          />
+          
+          {/* Main content - adjust margin based on sidebar state */}
+          <main className={cn(
+            "min-h-[calc(100vh-3.5rem)] overflow-x-auto transition-[margin] duration-200 ease-in-out",
+            sidebarCollapsed ? "lg:ml-[81px]" : "lg:ml-[256px]",
+            "ml-0" // No margin on mobile
+          )}>
+            <div className={cn("p-6 w-full", contentClassName)}>
+              {children}
+            </div>
+          </main>
+        </div>
+      </div>
+    </ClientOnly>
   )
 }

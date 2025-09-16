@@ -3,6 +3,9 @@ const nextConfig = {
   // Uncomment if you need static export
   // output: 'export',
   
+  // Critical for Replit: Allow all origins for development proxy
+  allowedDevOrigins: ['*'],
+  
   // Enable experimental features for better performance
   experimental: {
     // optimizeCss: true, // Disabled due to critters dependency issue

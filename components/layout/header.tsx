@@ -14,6 +14,7 @@ import { useTheme } from "next-themes"
 import { useLanguage } from "@/hooks/use-language"
 import { useState, useEffect, memo, useCallback } from "react"
 import Link from "next/link"
+import dynamic from "next/dynamic"
 import { useSession, signOut } from "next-auth/react"
 import { useRouter } from "next/navigation"
 
@@ -22,6 +23,44 @@ interface HeaderProps {
   isSidebarOpen: boolean
   sidebarCollapsed: boolean
 }
+
+// Client-only mobile user menu to prevent hydration mismatch
+const MobileUserMenu = dynamic(() => Promise.resolve(function MobileUserMenu() {
+  const { data: session, status } = useSession()
+  
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
+          <User className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44 md:hidden">
+        {status === 'loading' ? (
+          <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
+        ) : (session?.user?.email) ? (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/dashboard">Dashboard</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
+              Sign out
+            </DropdownMenuItem>
+          </>
+        ) : (
+          <>
+            <DropdownMenuItem asChild>
+              <Link href="/auth?mode=sign-in">Sign In</Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem asChild>
+              <Link href="/auth?mode=register">Registration</Link>
+            </DropdownMenuItem>
+          </>
+        )}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}), { ssr: false })
 
 const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCollapsed }: HeaderProps) {
   const { theme, setTheme } = useTheme()
@@ -162,44 +201,8 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             )}
           </div>
 
-          {/* Mobile user menu - only render DropdownMenu when mounted to prevent hydration mismatch */}
-          {!mounted ? (
-            // Show plain button during SSR with consistent attributes
-            <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
-              <User className="h-5 w-5" />
-            </Button>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden" aria-label="User menu">
-                  <User className="h-5 w-5" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-44 md:hidden">
-                {status === 'loading' ? (
-                  <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
-                ) : (session?.user?.email) ? (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link href="/dashboard">Dashboard</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
-                      Sign out
-                    </DropdownMenuItem>
-                  </>
-                ) : (
-                  <>
-                    <DropdownMenuItem asChild>
-                      <Link href="/auth?mode=sign-in">Sign In</Link>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      <Link href="/auth?mode=register">Registration</Link>
-                    </DropdownMenuItem>
-                  </>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
+          {/* Mobile user menu - client-only to prevent hydration mismatch */}
+          <MobileUserMenu />
         </div>
       </div>
     </header>

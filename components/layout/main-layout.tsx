@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Header } from "./header"
 import { Sidebar } from "./sidebar"
 import { cn } from "@/lib/utils"
@@ -13,6 +13,12 @@ interface MainLayoutProps {
 export function MainLayout({ children, contentClassName }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
+  const [mounted, setMounted] = useState(false)
+
+  // Prevent hydration mismatch by only rendering interactive elements after mount
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
@@ -40,7 +46,7 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
         {/* Main content - adjust margin based on sidebar state */}
         <main className={cn(
           "min-h-[calc(100vh-3.5rem)] overflow-x-auto transition-[margin] duration-200 ease-in-out",
-          sidebarCollapsed ? "lg:ml-[81px]" : "lg:ml-[256px]",
+          mounted ? (sidebarCollapsed ? "lg:ml-[81px]" : "lg:ml-[256px]") : "lg:ml-[81px]", // Default to collapsed on server
           "ml-0" // No margin on mobile
         )}>
           <div className={cn("p-6 w-full", contentClassName)}>

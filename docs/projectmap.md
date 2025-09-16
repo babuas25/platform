@@ -1,20 +1,40 @@
 # 🗺️ Project Map - Complete Navigation Guide
 
 ## 📋 Overview
-This document provides a comprehensive visual map of the entire Next.js Dashboard Platform, showing the relationships between components, pages, APIs, and documentation.
+This document provides a comprehensive visual map of the entire Next.js Dashboard Platform with **enterprise-grade, feature-first architecture** designed for maximum scalability and maintainability. The platform now follows domain-driven design principles with clear separation of concerns and modern development patterns.
+
+## 🎯 **NEW SCALABLE ARCHITECTURE** (2025 Update)
+
+### 🏗️ **Feature-First Structure**
+The project now uses a scalable, enterprise-ready structure:
+- **`src/features/`** - Domain-specific business logic
+- **`src/shared/`** - Reusable components and utilities
+- **`src/server/`** - Server-side operations
+- **`app/api/v1/`** - Versioned REST APIs
+
+### 🔧 **Domain-Organized Libraries**
+Libraries are now organized by business domain:
+- **`src/shared/lib/auth/`** - Authentication & authorization
+- **`src/shared/lib/db/`** - Database operations & Firebase
+- **`src/shared/lib/cache/`** - Caching strategies
+- **`src/shared/lib/http/`** - API clients & HTTP utilities
 
 ## 🎯 Quick Navigation
 
 ### 🚀 For Deployment Teams
 - **[⚡ Quick Start](deployment/quick-start.md)** → **[🔧 Environment Setup](deployment/environment-setup.md)** → **[🚀 Vercel Deploy](deployment/vercel-deployment.md)**
 - **Troubleshooting**: [🛠️ Common Issues](deployment/troubleshooting.md)
+- **NEW**: TypeScript path aliases (`@features/*`, `@shared/*`, `@server/*`)
 
 ### 👥 For End Users
 - **Dashboard**: `/` → **User Management**: `/user-management` → **Database**: `/database-init`
 - **Authentication**: `/auth/signin` → **Profile Management**: Individual user pages
+- **NEW**: Enhanced mobile experience with optimized components
 
 ### 👨‍💻 For Developers
-- **[🏗️ Architecture](technical/architecture.md)** → **[🔌 API Docs](technical/api-endpoints.md)** → **[📁 Project Structure](../PROJECT-STRUCTURE.md)**
+- **[🏗️ Architecture](technical/architecture.md)** → **[🔌 API Docs V1](technical/api-endpoints.md)** → **[📁 New Structure](../PROJECT-STRUCTURE.md)**
+- **NEW**: Feature-based development with domain boundaries
+- **NEW**: Versioned APIs starting with `/api/v1/`
 
 ## 🏗️ System Architecture Map
 
@@ -36,55 +56,102 @@ graph TB
     L --> O[Feature Components]
 ```
 
-## 📁 Directory Structure Map
+## 🏗️ **IMPROVED SCALABLE DIRECTORY STRUCTURE**
 
 ```
 platform/
-├── 📱 FRONTEND LAYER
-│   ├── app/                          # Next.js App Router
+├── 📱 **FRONTEND LAYER** (Enhanced)
+│   ├── app/                          # Next.js App Router (Current)
 │   │   ├── 🔐 (protected)/          # Protected routes group
 │   │   ├── 👤 auth/                 # Authentication pages
 │   │   ├── 👥 user-management/      # User management interface
 │   │   │   ├── all/                 # → List all users
-│   │   │   ├── create/              # → Create new user
 │   │   │   ├── users/[userId]/      # → Individual user details
 │   │   │   └── page.tsx             # → User management home
 │   │   ├── 🗄️ database-init/        # Database initialization
 │   │   ├── 📊 admin/                # Admin dashboard
-│   │   ├── 📝 blog/                 # Blog pages
-│   │   ├── 📰 news/                 # News pages
-│   │   ├── 🛍️ promotions/           # Promotions
-│   │   ├── 🛠️ services/             # Services
-│   │   ├── ✈️ travel-advisory/      # Travel advisory
 │   │   ├── layout.tsx               # Root layout
 │   │   └── page.tsx                 # Homepage
-│   └── components/                   # Reusable components
+│   ├── **src/** 🆕                   # **NEW SCALABLE SOURCE DIRECTORY**
+│   │   ├── **features/** 🎯          # **FEATURE-FIRST ARCHITECTURE**
+│   │   │   ├── users/               # User management domain
+│   │   │   │   ├── components/      # User-specific components
+│   │   │   │   ├── hooks/           # User-specific hooks
+│   │   │   │   ├── services/        # User business logic
+│   │   │   │   └── types/           # User type definitions
+│   │   │   ├── admin/               # Admin management domain
+│   │   │   │   ├── components/      # Admin-specific components
+│   │   │   │   └── services/        # Admin business logic
+│   │   │   └── auth/                # Authentication domain
+│   │   │       ├── components/      # Auth components
+│   │   │       └── services/        # Auth business logic
+│   │   ├── **shared/** 🔄            # **SHARED RESOURCES**
+│   │   │   ├── components/          # Design system components
+│   │   │   │   └── ui/              # 49 UI components (moved here)
+│   │   │   ├── hooks/               # Generic React hooks only
+│   │   │   ├── **lib/** 📚           # **DOMAIN-ORGANIZED UTILITIES**
+│   │   │   │   ├── auth/            # Authentication & RBAC
+│   │   │   │   │   ├── auth-options.ts
+│   │   │   │   │   └── rbac.ts
+│   │   │   │   ├── db/              # Database operations
+│   │   │   │   │   ├── firebase-admin.ts
+│   │   │   │   │   ├── firestore.ts
+│   │   │   │   │   ├── query-optimization.ts
+│   │   │   │   │   └── seed-data.ts
+│   │   │   │   ├── cache/           # Caching strategies
+│   │   │   │   │   ├── cache-manager.ts
+│   │   │   │   │   ├── cache-invalidation.ts
+│   │   │   │   │   └── cache-monitor.ts
+│   │   │   │   ├── http/            # API clients & HTTP
+│   │   │   │   │   └── api-response-cache.ts
+│   │   │   │   └── rbac/            # Role-based access
+│   │   │   ├── types/               # Global TypeScript types
+│   │   │   │   └── user.ts
+│   │   │   ├── constants/           # Application constants
+│   │   │   │   └── index.ts         # Roles, API routes, etc.
+│   │   │   └── config/              # Runtime configuration
+│   │   │       └── index.ts         # Environment, cache, pagination
+│   │   └── **server/** 🖥️           # **SERVER-SIDE OPERATIONS**
+│   │       ├── middleware/          # Route protection
+│   │       └── handlers/            # API request handlers
+│   └── components/                   # **LEGACY** (Being migrated)
 │       ├── layout/                  # Layout components
 │       ├── providers/               # Context providers
-│       ├── ui/                      # UI component library (49 components)
-│       └── user-management/         # Feature-specific components
+│       └── user-management/         # Moving to features/
 │
-├── 🔌 API LAYER
+├── 🔌 **API LAYER** (Versioned & Enhanced)
 │   └── app/api/                     # API endpoints
-│       ├── 🔑 auth/                 # NextAuth endpoints
+│       ├── 🔑 auth/                 # NextAuth endpoints (Current)
 │       │   └── [...nextauth]/      # Dynamic auth routes
-│       ├── 👥 users/                # User management API
-│       │   ├── route.ts             # CRUD operations
-│       │   └── [userId]/            # Individual user operations
-│       ├── 🗄️ database/             # Database management
-│       │   ├── initialize/          # Database initialization
-│       │   └── status/              # Health checks
-│       ├── 🩺 health/               # System health
-│       └── 🧪 test/                 # Testing endpoints
+│       ├── **v1/** 🆕                # **NEW VERSIONED API STRUCTURE**
+│       │   ├── 👥 users/            # User management API v1
+│       │   │   ├── route.ts         # List/Create users
+│       │   │   ├── [userId]/        # Individual user operations
+│       │   │   └── stats/           # User statistics
+│       │   ├── 🗄️ database/         # Database management v1
+│       │   │   ├── status/          # Health checks
+│       │   │   ├── seed/            # Data seeding
+│       │   │   └── config/          # Database configuration
+│       │   ├── 🩺 health/           # System health v1
+│       │   ├── 📊 performance/      # Performance metrics
+│       │   │   └── query-stats/     # Query performance
+│       │   └── 💾 cache/            # Cache management
+│       │       └── stats/           # Cache statistics
+│       ├── 👥 users/                # **LEGACY** (Deprecated)
+│       ├── 🗄️ database/             # **LEGACY** (Deprecated)
+│       ├── 📊 performance/          # **LEGACY** (Deprecated)
+│       ├── 💾 cache/                # **LEGACY** (Deprecated)
+│       └── 🧪 register/             # Registration endpoint
 │
-├── 🛠️ UTILITY LAYER
-│   ├── lib/                         # Core utilities
-│   │   ├── firebase-admin.ts        # Server-side Firebase
-│   │   ├── firebase.ts              # Client-side Firebase
-│   │   ├── auth.ts                  # Authentication utilities
-│   │   └── utils.ts                 # General utilities
-│   ├── hooks/                       # Custom React hooks
-│   └── middleware.ts                # Route protection
+├── 🛠️ **UTILITY LAYER** (Restructured)
+│   ├── **NEW**: src/shared/lib/     # Domain-organized utilities
+│   ├── **NEW**: src/shared/hooks/   # Generic React hooks
+│   ├── **NEW**: src/shared/types/   # Global TypeScript types
+│   ├── **NEW**: src/shared/constants/ # Application constants
+│   ├── **NEW**: src/shared/config/  # Runtime configuration
+│   ├── lib/ 📦                      # **LEGACY** (Being migrated)
+│   ├── hooks/ 📦                    # **LEGACY** (Being migrated)
+│   └── middleware.ts                # Route protection (Enhanced)
 │
 ├── 📚 DOCUMENTATION LAYER
 │   └── docs/                        # Complete documentation
@@ -95,20 +162,30 @@ platform/
 │       ├── README.md                # Documentation hub
 │       └── projectmap.md            # This file
 │
-└── 🔧 CONFIGURATION LAYER
+└── 🔧 **CONFIGURATION LAYER** (Enhanced)
     ├── scripts/                     # Build & deployment scripts
     ├── public/                      # Static assets
-    └── Config files                 # Next.js, TypeScript, Tailwind
+    ├── **Path Aliases** 🆕           # TypeScript path mapping
+    │   ├── @app/* → ./app/*
+    │   ├── @features/* → ./src/features/*
+    │   ├── @shared/* → ./src/shared/*
+    │   └── @server/* → ./src/server/*
+    └── Config files                 # Next.js, TypeScript, Tailwind (Updated)
 ```
 
-## 🔄 User Flow Map
+## 🔄 **ENHANCED USER FLOW MAP**
 
-### 🔐 Authentication Flow
+### 🔐 Authentication Flow (With New Architecture)
 ```
 Visitor → /auth/signin → Choose Provider:
-├── Google OAuth → Google Consent → Callback → Dashboard
-├── Facebook OAuth → Facebook Consent → Callback → Dashboard
-└── Email/Password → Firebase Auth → Dashboard
+├── Google OAuth → Google Consent → /api/auth/callback → Dashboard
+├── Facebook OAuth → Facebook Consent → /api/auth/callback → Dashboard
+└── Email/Password → Firebase Auth → Session Creation → Dashboard
+         ↓
+    NEW: Enhanced security with
+    - Role-based middleware
+    - Session validation  
+    - Automatic role assignment
 ```
 
 ### 👥 User Management Flow
@@ -170,85 +247,120 @@ ui/
     └── carousel.tsx, slider.tsx
 ```
 
-## 🛡️ Security & Permission Map
+## 🛡️ **ENHANCED SECURITY & PERMISSION MAP**
 
-### 🔐 Role-Based Access Control
+### 🔐 Role-Based Access Control (Enhanced)
 ```
-Permission Hierarchy:
+Permission Hierarchy (with NEW domain boundaries):
 SuperAdmin (Level 6) → Full System Access
-├── Admin (Level 5) → User Management + Content
-├── Staff (Level 4) → Limited Operations
-│   ├── Support → Customer Service
-│   ├── Key Managers → Account Management
-│   ├── Research → Data Analysis
-│   ├── Media → Content Creation
-│   └── Sales → Sales Operations
-├── Partner (Level 3) → Partner Data
-│   ├── Suppliers → Product/Service Data
-│   └── Service Providers → Service Data
-├── Agent (Level 2) → Sales Data
-│   ├── Distributors → Regional Data
-│   ├── Franchise → Location Data
-│   └── B2B → Business Data
-└── User (Level 1) → Personal Data
-    ├── Public → Basic Access
-    └── Customer → Enhanced Features
+├── 🎯 Feature Access: ALL features in src/features/*
+├── 🔧 API Access: Full v1 + legacy API access
+├── 📊 Admin Dashboard: Complete system monitoring
+└── 🗄️ Database: Full CRUD + seeding operations
+
+Admin (Level 5) → User Management + Content
+├── 🎯 Feature Access: users/*, admin/* (limited)
+├── 🔧 API Access: v1 users, database status
+├── 📊 Admin Dashboard: User management only
+└── 🗄️ Database: Read operations + user CRUD
+
+Staff (Level 4) → Limited Operations
+├── Support → Customer Service
+│   └── 🎯 Feature Access: users/read, support tools
+├── Key Managers → Account Management  
+│   └── 🎯 Feature Access: users/edit, account ops
+├── Research → Data Analysis
+│   └── 🎯 Feature Access: analytics, reporting
+├── Media → Content Creation
+│   └── 🎯 Feature Access: content management
+└── Sales → Sales Operations
+    └── 🎯 Feature Access: sales dashboard, leads
+
+Partner (Level 3) → Partner Data
+├── Suppliers → Product/Service Data
+└── Service Providers → Service Data
+
+Agent (Level 2) → Sales Data  
+├── Distributors → Regional Data
+├── Franchise → Location Data
+└── B2B → Business Data
+
+User (Level 1) → Personal Data
+├── Public → Basic Access
+└── Customer → Enhanced Features
 ```
 
-### 🛡️ Security Layers
+### 🛡️ **ENHANCED SECURITY LAYERS**
 ```
-Frontend Security:
-├── Route Protection (middleware.ts)
-├── Component-level Guards
-└── Session Validation
+Frontend Security (Enhanced):
+├── Route Protection (middleware.ts) → Feature-based routing
+├── Component-level Guards → src/features/*/components  
+├── Session Validation → Enhanced with role caching
+└── **NEW**: Path-based access control (@features/*)
 
-API Security:
-├── Authentication Checks
-├── Role-based Permissions
-├── Input Validation
-└── Rate Limiting
+API Security (v1 Enhanced):
+├── Authentication Checks → JWT + Firebase integration
+├── Role-based Permissions → Domain-specific RBAC
+├── Input Validation → **NEW**: Zod schema validation
+├── Rate Limiting → **NEW**: Per-endpoint rate limits
+├── **NEW**: API Versioning → Backward compatibility
+└── **NEW**: Request/Response logging
 
-Database Security:
-├── Firestore Security Rules
-├── Admin SDK Operations
-├── Data Encryption
-└── Audit Logging
+Database Security (Enhanced):
+├── Firestore Security Rules → Multi-environment rules
+├── Admin SDK Operations → Server-only (src/shared/lib/db/)
+├── Data Encryption → Enhanced field encryption
+├── Audit Logging → Complete operation tracking
+├── **NEW**: Query Performance Monitoring
+└── **NEW**: Connection Health Monitoring
 ```
 
-## 📊 API Endpoint Map
+## 📊 **ENHANCED API ENDPOINT MAP** (v1 + Legacy)
 
-### 🔑 Authentication Endpoints
+### 🔑 Authentication Endpoints (Current)
 ```
-/api/auth/
+/api/auth/ (NextAuth.js integration)
 ├── session → Get current session
-├── signin → Initiate authentication
+├── signin → Initiate authentication  
 ├── signout → Sign out user
 └── [...nextauth] → NextAuth handlers
 ```
 
-### 👥 User Management Endpoints
+### 🆕 **NEW v1 API ENDPOINTS** (Recommended)
 ```
-/api/users/
-├── GET → List users (paginated, filtered)
-├── POST → Create new user
-├── [userId]/
-│   ├── GET → Get user details
-│   ├── PUT → Update user
-│   └── DELETE → Delete user
+/api/v1/ (NEW Versioned API)
+├── 👥 users/
+│   ├── GET → List users (paginated, filtered, cached)
+│   ├── POST → Create new user (validated)
+│   ├── stats/ → User statistics
+│   └── [userId]/
+│       ├── GET → Get user details
+│       ├── PUT → Update user (validated)
+│       ├── DELETE → Delete user
+│       └── role/ → Update user role
+├── 🗄️ database/
+│   ├── status/ → Database health (enhanced)
+│   ├── seed/ → Database seeding
+│   ├── config/ → Database configuration
+│   ├── connectivity/ → Connection testing
+│   └── test/ → Database operations testing
+├── 🩺 health/
+│   ├── GET → System health check
+│   └── detailed/ → Comprehensive system metrics
+├── 📈 performance/
+│   └── query-stats/ → Query performance metrics
+└── 💾 cache/
+    └── stats/ → Cache performance statistics
 ```
 
-### 🗄️ Database Management Endpoints
+### 📦 **LEGACY API ENDPOINTS** (Being Deprecated)
 ```
-/api/database/
-├── initialize → Initialize database with seed data
-├── status → Check database health
-└── backup → Create database backup
-```
-
-### 🩺 Health & Monitoring Endpoints
-```
-/api/health → System health check
-/api/health/detailed → Detailed system metrics
+/api/ (Legacy - Use v1 instead)
+├── users/ → Use /api/v1/users/
+├── database/ → Use /api/v1/database/
+├── performance/ → Use /api/v1/performance/
+├── cache/ → Use /api/v1/cache/
+└── register/ → Individual registration endpoint
 ```
 
 ## 📚 Documentation Map
@@ -285,13 +397,15 @@ configuration/
 └── production-checklist.md → Pre-deployment checklist
 ```
 
-## 🎯 Feature Interaction Map
+## 🎯 **ENHANCED FEATURE INTERACTION MAP**
 
-### 👥 User Management Features
+### 👥 User Management Features (NEW Architecture)
 ```
-User Creation → Role Assignment → Permission Setup → Access Control
-     ↓              ↓              ↓              ↓
-Database Store → UI Display → Route Protection → Component Rendering
+User Creation (src/features/users/) → Role Assignment (src/shared/lib/auth/) → Permission Setup → Access Control
+     ↓                                        ↓                                 ↓              ↓
+Database Store (src/shared/lib/db/) → UI Display (src/features/users/components/) → Route Protection → Component Rendering
+                                             ↓                                           ↓
+                                    Cache Management (src/shared/lib/cache/) → Performance Optimization
 ```
 
 ### 🔐 Authentication Features

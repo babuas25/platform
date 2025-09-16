@@ -10,27 +10,37 @@ The system supports 6 user categories (SuperAdmin, Admin, Staff, Partner, Agent,
 
 Preferred communication style: Simple, everyday language.
 
-## System Architecture
+## System Architecture (Enhanced 2025)
 
-### Frontend Architecture
+### 🆕 **NEW Enterprise Architecture**
+- **Structure**: Feature-first architecture with `src/features/` organization
+- **Domain Separation**: Libraries organized by domain in `src/shared/lib/`
+- **API Versioning**: Scalable `/api/v1/` structure for future growth
+- **Path Aliases**: TypeScript aliases (`@features/*`, `@shared/*`, `@server/*`)
+
+### Frontend Architecture (Enhanced)
 - **Framework**: Next.js 15.5.2 with App Router for modern React server components
-- **UI Library**: Radix UI primitives with shadcn/ui components (49 reusable components)
+- **UI Library**: Design system with 49 reusable components in `src/shared/components/ui/`
+- **Component Organization**: Feature-specific components in respective domains
 - **Styling**: Tailwind CSS with CSS variables for theming
 - **State Management**: React hooks with custom providers for user context and theme management
-- **Authentication**: NextAuth.js with session management and protected routes
+- **Authentication**: NextAuth.js with enhanced RBAC and session management
 
-### Backend Architecture
-- **API Routes**: Next.js API routes in `/app/api/` for server-side operations
-- **Database Operations**: Firebase Admin SDK for server-side database access
-- **Caching Strategy**: Multi-layer caching with LRU cache, API response caching, and browser caching
+### Backend Architecture (Enhanced)
+- **API Routes**: Versioned Next.js API routes in `/app/api/v1/` for scalable server-side operations
+- **Database Operations**: Firebase Admin SDK organized in `src/shared/lib/db/` domain
+- **Caching Strategy**: Domain-organized caching in `src/shared/lib/cache/` with LRU cache, API response caching, and browser caching
+- **Authentication**: Enhanced RBAC system in `src/shared/lib/auth/` domain
 - **Performance Monitoring**: Query optimization tracking and database indexing
-- **Security**: Role-based middleware, CSRF protection, and secure headers
+- **Security**: Role-based middleware, CSRF protection, and secure headers with versioned API security
 
-### Data Storage
-- **Primary Database**: Firebase Firestore with composite indexes for query optimization
-- **Authentication**: Firebase Auth integrated with NextAuth.js for session persistence
-- **Caching**: In-memory LRU cache with TTL support and cache invalidation patterns
-- **File Storage**: Firebase Storage (configured but not heavily utilized in current implementation)
+### Data Storage (Enhanced)
+- **Primary Database**: Firebase Firestore with composite indexes organized in `src/shared/lib/db/`
+- **Authentication**: Firebase Auth integrated with NextAuth.js in `src/shared/lib/auth/`
+- **Caching**: Domain-organized caching system in `src/shared/lib/cache/` with TTL and invalidation
+- **Configuration**: Centralized runtime config in `src/shared/config/`
+- **Types**: Global types organized in `src/shared/types/`
+- **Constants**: Application constants in `src/shared/constants/`
 
 ### Authentication & Authorization
 - **Multi-Provider Auth**: Google OAuth, Facebook OAuth, and email/password via Firebase Auth
@@ -38,11 +48,14 @@ Preferred communication style: Simple, everyday language.
 - **Role-Based Access Control**: Hierarchical role system with 6 main categories and granular permissions
 - **Protected Routes**: Route groups and middleware for authentication enforcement
 
-### Performance & Scalability
-- **Database Indexing**: Comprehensive Firestore composite indexes for complex queries
-- **Caching Layers**: Browser caching, API response caching, and database query caching
-- **Query Optimization**: Performance monitoring with slow query detection
-- **Code Splitting**: Next.js automatic code splitting and lazy loading
+### Performance & Scalability (2025 Enhanced)
+- **Feature Isolation**: Each feature in `src/features/` can be developed and deployed independently
+- **Domain Organization**: Libraries organized by domain for better tree-shaking
+- **Database Indexing**: Comprehensive Firestore composite indexes in `src/shared/lib/db/`
+- **Caching Layers**: Domain-organized caching in `src/shared/lib/cache/`
+- **API Versioning**: Scalable versioned APIs starting with `/api/v1/`
+- **Path Aliases**: Clean imports with TypeScript path mapping
+- **Code Splitting**: Next.js automatic code splitting with feature-based organization
 
 ## External Dependencies
 

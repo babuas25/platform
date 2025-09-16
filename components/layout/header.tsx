@@ -47,6 +47,19 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
     setIsMobileSearchOpen(prev => !prev)
   }, [])
 
+  // Don't render interactive elements until mounted to prevent hydration mismatch
+  if (!isClient) {
+    return (
+      <header className="header-container fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+        <div className="header-content relative flex h-14 items-center justify-between px-4 lg:px-6">
+          <div className="flex items-center">
+            <h1 className="font-bold font-nordique-pro w-[118px] h-6 flex items-center text-base leading-none">AppDashboard</h1>
+          </div>
+        </div>
+      </header>
+    )
+  }
+
   return (
     <>
       <header className="header-container fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">

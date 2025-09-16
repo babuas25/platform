@@ -27,7 +27,12 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
   const { theme, setTheme } = useTheme()
   const { currentLanguage, languages, changeLanguage } = useLanguage()
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const { data: session, status } = useSession()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const router = useRouter()
 
@@ -88,7 +93,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-48">
-                {(languages || []).map((language) => (
+                {mounted && (languages || []).map((language) => (
                   <DropdownMenuItem
                     key={language.code}
                     onClick={() => changeLanguage?.(language.code)}
@@ -104,7 +109,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
               </DropdownMenuContent>
           </DropdownMenu>
 
-          {/* Theme toggle - always visible with fallback */}
+          {/* Theme toggle - stable rendering to prevent hydration mismatch */}
           <Button
             variant="ghost"
             size="icon"
@@ -113,15 +118,22 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             aria-label="Toggle theme"
           >
             <div className="relative w-5 h-5" suppressHydrationWarning>
-              <Sun className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-              <Moon className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
+              {!mounted ? (
+                // Show neutral state during SSR to prevent hydration mismatch
+                <Sun className="absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out rotate-0 scale-100 opacity-100" />
+              ) : (
+                <>
+                  <Sun className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+                  <Moon className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
+                </>
+              )}
             </div>
           </Button>
 
           {/* Auth buttons or user menu - desktop */}
           <div className="hidden md:flex items-center space-x-2">
-            {status === 'loading' ? (
-              // Avoid UI flicker while session is loading
+            {!mounted || status === 'loading' ? (
+              // Show fixed placeholder during SSR and loading to prevent hydration mismatch
               <div className="w-[120px] h-7" />
             ) : (session?.user?.email) ? (
               <DropdownMenu>
@@ -161,7 +173,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44 md:hidden">
-              {status === 'loading' ? (
+              {!mounted || status === 'loading' ? (
                 <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
               ) : (session?.user?.email) ? (
                 <>

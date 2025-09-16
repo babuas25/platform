@@ -234,7 +234,12 @@ const navigationItems: NavigationItem[] = [
 export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: SidebarProps) {
   const [activeSubmenu, setActiveSubmenu] = useState<string | null>(null)
   const [sessionTime, setSessionTime] = useState<string>('')
+  const [mounted, setMounted] = useState(false)
   const { data: session, status } = useSession()
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
   
   // Debug log with more details
   console.log('[SIDEBAR] Session status:', status);
@@ -320,12 +325,13 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   }
   
   // Filter navigation items based on user role and permissions
-  const filteredNavigationItems = navigationItems.filter(item => {
-    if (!item.allowedRoles) return true
-    // Don't filter anything if session is still loading
-    if (status === 'loading') return true
-    return item.allowedRoles.includes(userRole)
-  })
+  // Show all items during SSR and loading to prevent hydration mismatch
+  const filteredNavigationItems = (!mounted || status === 'loading') 
+    ? navigationItems  // Show all items during SSR/loading
+    : navigationItems.filter(item => {
+        if (!item.allowedRoles) return true
+        return item.allowedRoles.includes(userRole)
+      })
 
   const toggleSubmenu = (title: string) => {
     if (isCollapsed) {
@@ -467,7 +473,20 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
 
           {/* Sidebar footer - User Profile */}
           <div className="border-t">
-            {session?.user?.email ? (
+            {(!mounted || status === 'loading') ? (
+              // Show neutral loading state during SSR to prevent hydration mismatch
+              shouldShowText && (
+                <div className="p-4">
+                  <div className="flex items-center space-x-3 mb-3">
+                    <div className="h-10 w-10 bg-muted rounded-full animate-pulse" />
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="h-4 bg-muted rounded animate-pulse" />
+                      <div className="h-3 bg-muted rounded animate-pulse" />
+                    </div>
+                  </div>
+                </div>
+              )
+            ) : session?.user?.email ? (
               shouldShowText ? (
                 <div className="p-4">
                   <div className="flex items-center space-x-3 mb-3">

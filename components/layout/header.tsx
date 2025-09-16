@@ -26,18 +26,10 @@ interface HeaderProps {
 const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCollapsed }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const { currentLanguage, languages, changeLanguage } = useLanguage()
-  const [isClient, setIsClient] = useState(false)
   const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false)
   const { data: session, status } = useSession()
 
   const router = useRouter()
-
-  // Simple client check without complex state management
-  useEffect(() => {
-    setIsClient(true)
-  }, [])
-
-  // NextAuth session is provided by SessionProvider; no manual subscription needed
 
   const handleThemeToggle = useCallback(() => {
     setTheme?.(theme === "dark" ? "light" : "dark")
@@ -46,19 +38,6 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
   const toggleMobileSearch = useCallback(() => {
     setIsMobileSearchOpen(prev => !prev)
   }, [])
-
-  // Don't render interactive elements until mounted to prevent hydration mismatch
-  if (!isClient) {
-    return (
-      <header className="header-container fixed top-0 left-0 right-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-        <div className="header-content relative flex h-14 items-center justify-between px-4 lg:px-6">
-          <div className="flex items-center">
-            <h1 className="font-bold font-nordique-pro w-[118px] h-6 flex items-center text-base leading-none">AppDashboard</h1>
-          </div>
-        </div>
-      </header>
-    )
-  }
 
   return (
     <>
@@ -104,13 +83,11 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
                 variant="ghost" 
                 size="icon"
                 className="transition-opacity duration-300 ease-in-out"
-                disabled={!isClient}
               >
                 <Globe className="h-5 w-5" />
               </Button>
             </DropdownMenuTrigger>
-            {isClient && (
-              <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuContent align="end" className="w-48">
                 {(languages || []).map((language) => (
                   <DropdownMenuItem
                     key={language.code}
@@ -125,7 +102,6 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
                   </DropdownMenuItem>
                 ))}
               </DropdownMenuContent>
-            )}
           </DropdownMenu>
 
           {/* Theme toggle - always visible with fallback */}
@@ -136,15 +112,9 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             className="transition-transform duration-200 ease-in-out"
             aria-label="Toggle theme"
           >
-            <div className="relative w-5 h-5">
-              {isClient ? (
-                <>
-                  <Sun className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
-                  <Moon className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
-                </>
-              ) : (
-                <Sun className="h-5 w-5" />
-              )}
+            <div className="relative w-5 h-5" suppressHydrationWarning>
+              <Sun className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-90 scale-0 opacity-0' : 'rotate-0 scale-100 opacity-100'}`} />
+              <Moon className={`absolute h-5 w-5 transition-[transform,opacity] duration-200 ease-in-out ${theme === "dark" ? 'rotate-0 scale-100 opacity-100' : '-rotate-90 scale-0 opacity-0'}`} />
             </div>
           </Button>
 

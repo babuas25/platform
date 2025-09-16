@@ -162,7 +162,7 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-44 md:hidden">
               {status === 'loading' ? (
-                <></>
+                <DropdownMenuItem disabled>Loading...</DropdownMenuItem>
               ) : (session?.user?.email) ? (
                 <>
                   <DropdownMenuItem asChild>

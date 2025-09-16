@@ -29,7 +29,7 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
     <div className="min-h-screen bg-background">
       <Header onSidebarToggle={toggleSidebar} isSidebarOpen={sidebarOpen} sidebarCollapsed={sidebarCollapsed} />
       
-      <div className="pt-14 flex"> {/* Use flex layout */}
+      <div className="pt-14"> 
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={closeSidebar} 
@@ -37,8 +37,12 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
           onToggleCollapse={toggleSidebarCollapse}
         />
         
-        {/* Main content */}
-        <main className="flex-1 min-h-[calc(100vh-3.5rem)] overflow-x-auto">
+        {/* Main content - adjust margin based on sidebar state */}
+        <main className={cn(
+          "min-h-[calc(100vh-3.5rem)] overflow-x-auto transition-[margin] duration-200 ease-in-out",
+          sidebarCollapsed ? "lg:ml-[81px]" : "lg:ml-[256px]",
+          "ml-0" // No margin on mobile
+        )}>
           <div className={cn("p-6 w-full", contentClassName)}>
             {children}
           </div>

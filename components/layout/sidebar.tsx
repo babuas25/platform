@@ -352,12 +352,12 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
       {/* Sidebar */}
       <aside
         className={cn(
-          "fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transform border-r bg-background transition-[width,transform] duration-200 ease-in-out lg:static lg:z-auto lg:translate-x-0 lg:h-[calc(100vh-3.5rem)] box-border",
+          "fixed left-0 top-14 z-50 h-[calc(100vh-3.5rem)] transform border-r bg-background transition-[width,transform] duration-200 ease-in-out box-border",
           // On mobile, always use full width when open. On desktop, respect isCollapsed state  
           "w-[256px] lg:w-auto",
           isCollapsed && "lg:w-[81px]",
           !isCollapsed && "lg:w-[256px]",
-          isOpen ? "translate-x-0" : "-translate-x-full"
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
         <div className="flex h-full flex-col">

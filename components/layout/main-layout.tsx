@@ -13,12 +13,6 @@ interface MainLayoutProps {
 export function MainLayout({ children, contentClassName }: MainLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
-  const [mounted, setMounted] = useState(false)
-
-  // Prevent hydration mismatch by controlling when interactive elements render
-  useEffect(() => {
-    setMounted(true)
-  }, [])
 
   const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen)
@@ -49,8 +43,8 @@ export function MainLayout({ children, contentClassName }: MainLayoutProps) {
         {/* Main content - consistent margin calculation */}
         <main className={cn(
           "min-h-[calc(100vh-3.5rem)] overflow-x-auto transition-[margin] duration-200 ease-in-out",
-          // Use consistent sidebar state for both server and client initial render
-          mounted && !sidebarCollapsed ? "lg:ml-[256px]" : "lg:ml-[81px]",
+          // Always use collapsed state on initial render for consistency
+          !sidebarCollapsed ? "lg:ml-[256px]" : "lg:ml-[81px]",
           "ml-0" // No margin on mobile
         )}>
           <div className={cn("p-6 w-full", contentClassName)}>

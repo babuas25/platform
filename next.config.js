@@ -27,6 +27,11 @@ const nextConfig = {
     imageSizes: [16, 32, 48, 64, 96, 128, 256, 384],
   },
 
+  // Critical for Replit: Allow all hosts for development proxy
+  async rewrites() {
+    return [];
+  },
+
   // Ensure Firebase auth popups can open and close properly in dev/prod
   async headers() {
     return [

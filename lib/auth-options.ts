@@ -1,6 +1,7 @@
 import GoogleProvider from "next-auth/providers/google";
 import FacebookProvider from "next-auth/providers/facebook";
 import CredentialsProvider from "next-auth/providers/credentials";
+import type { NextAuthOptions } from "next-auth";
 import { getDefaultRole } from './rbac';
 import { db } from './firebase';
 import { doc, setDoc, getDoc, Timestamp } from 'firebase/firestore';
@@ -119,7 +120,7 @@ function getSubcategoryFromRole(role: string): string {
   }
 }
 
-export const authOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID as string,

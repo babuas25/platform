@@ -2,8 +2,10 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { GeistSans } from 'geist/font/sans';
 import localFont from 'next/font/local';
+import { getServerSession } from 'next-auth';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
+import { authOptions } from '@/lib/auth-options';
 
 // Nordique Pro Semibold font for logo
 const nordiquePro = localFont({
@@ -58,25 +60,26 @@ export const viewport: Viewport = {
   ],
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  // Get server session to prevent hydration mismatch
+  const session = await getServerSession(authOptions);
+
   return (
     <html lang="en" suppressHydrationWarning data-scroll-behavior="smooth" className={`${GeistSans.variable} ${nordiquePro.variable}`}>
       <head></head>
-      <body className={`${GeistSans.className} font-sans`} suppressHydrationWarning>
-        <AuthProvider>
+      <body className={`${GeistSans.className} font-sans`}>
+        <AuthProvider session={session}>
           <ThemeProvider
             attribute="class"
             defaultTheme="system"
             enableSystem
             disableTransitionOnChange
           >
-            <div suppressHydrationWarning>
-              {children}
-            </div>
+            {children}
           </ThemeProvider>
         </AuthProvider>
       </body>

@@ -62,6 +62,78 @@ const MobileUserMenu = dynamic(() => Promise.resolve(function MobileUserMenu() {
   )
 }), { ssr: false })
 
+// Client-only language selector to prevent hydration mismatch
+const LanguageSelector = dynamic(() => Promise.resolve(function LanguageSelector() {
+  const { currentLanguage, languages, changeLanguage } = useLanguage()
+  
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="transition-opacity duration-300 ease-in-out"
+        >
+          <Globe className="h-5 w-5" />
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-48">
+        {(languages || []).map((language) => (
+          <DropdownMenuItem
+            key={language.code}
+            onClick={() => changeLanguage?.(language.code)}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <span className="text-lg">{language.flag}</span>
+            <span className="flex-1">{language.name}</span>
+            {currentLanguage === language.code && (
+              <div className="w-2 h-2 bg-primary rounded-full" />
+            )}
+          </DropdownMenuItem>
+        ))}
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}), { ssr: false })
+
+// Client-only desktop user menu to prevent hydration mismatch
+const DesktopUserMenu = dynamic(() => Promise.resolve(function DesktopUserMenu() {
+  const { data: session, status } = useSession()
+  
+  if (!session?.user?.email) {
+    return (
+      <>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/auth?mode=register">Register</Link>
+        </Button>
+        <Button asChild variant="outline" size="sm">
+          <Link href="/auth?mode=sign-in">Sign In</Link>
+        </Button>
+      </>
+    )
+  }
+  
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button variant="ghost" className="px-2">
+          <Avatar className="h-7 w-7">
+            <AvatarFallback>{(session.user.email || session.user.name || "U").charAt(0).toUpperCase()}</AvatarFallback>
+          </Avatar>
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end" className="w-44">
+        <DropdownMenuItem asChild>
+          <Link href="/dashboard">Dashboard</Link>
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
+          Sign out
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  )
+}), { ssr: false })
+
 const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCollapsed }: HeaderProps) {
   const { theme, setTheme } = useTheme()
   const { currentLanguage, languages, changeLanguage } = useLanguage()
@@ -120,33 +192,8 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             <Search className="h-5 w-5" />
           </Button>
 
-          {/* Language selector - always show placeholder, enhance when client ready */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                className="transition-opacity duration-300 ease-in-out"
-              >
-                <Globe className="h-5 w-5" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-48">
-                {mounted && (languages || []).map((language) => (
-                  <DropdownMenuItem
-                    key={language.code}
-                    onClick={() => changeLanguage?.(language.code)}
-                    className="flex items-center gap-2 cursor-pointer"
-                  >
-                    <span className="text-lg">{language.flag}</span>
-                    <span className="flex-1">{language.name}</span>
-                    {currentLanguage === language.code && (
-                      <div className="w-2 h-2 bg-primary rounded-full" />
-                    )}
-                  </DropdownMenuItem>
-                ))}
-              </DropdownMenuContent>
-          </DropdownMenu>
+          {/* Language selector - client-only to prevent hydration mismatch */}
+          <LanguageSelector />
 
           {/* Theme toggle - stable rendering to prevent hydration mismatch */}
           <Button
@@ -166,39 +213,9 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             </div>
           </Button>
 
-          {/* Auth buttons or user menu - desktop */}
+          {/* Auth buttons or user menu - desktop - client-only to prevent hydration mismatch */}
           <div className="hidden md:flex items-center space-x-2">
-            {!mounted || status === 'loading' ? (
-              // Show fixed placeholder during SSR and loading to prevent hydration mismatch
-              <div className="w-[120px] h-7" />
-            ) : (session?.user?.email) ? (
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="px-2">
-                    <Avatar className="h-7 w-7">
-                      <AvatarFallback>{(session.user.email || session.user.name || "U").charAt(0).toUpperCase()}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">Dashboard</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={async () => { await signOut({ callbackUrl: '/auth' }) }}>
-                    Sign out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            ) : (
-              <>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/auth?mode=register">Register</Link>
-                </Button>
-                <Button asChild variant="outline" size="sm">
-                  <Link href="/auth?mode=sign-in">Sign In</Link>
-                </Button>
-              </>
-            )}
+            <DesktopUserMenu />
           </div>
 
           {/* Mobile user menu - client-only to prevent hydration mismatch */}

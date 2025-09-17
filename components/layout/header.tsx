@@ -202,13 +202,15 @@ const Header = memo(function Header({ onSidebarToggle, isSidebarOpen, sidebarCol
             onClick={handleThemeToggle}
             className="transition-transform duration-200 ease-in-out"
             aria-label="Toggle theme"
+            disabled={!mounted}
           >
-            <div className="relative w-5 h-5" suppressHydrationWarning>
-              {/* Always show Sun icon in same position to prevent hydration mismatch */}
-              <Sun className="h-5 w-5" />
-              {/* Moon hidden during SSR - only show when mounted and theme is dark */}
-              {mounted && theme === "dark" && (
-                <Moon className="absolute top-0 left-0 h-5 w-5 transition-all duration-200" />
+            <div className="relative w-5 h-5">
+              {!mounted ? (
+                <Sun className="h-5 w-5" />
+              ) : theme === "dark" ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
               )}
             </div>
           </Button>

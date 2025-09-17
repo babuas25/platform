@@ -325,13 +325,11 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   }
   
   // Filter navigation items based on user role and permissions
-  // Show all items during SSR and loading to prevent hydration mismatch
-  const filteredNavigationItems = (!mounted || status === 'loading') 
-    ? navigationItems  // Show all items during SSR/loading
-    : navigationItems.filter(item => {
-        if (!item.allowedRoles) return true
-        return item.allowedRoles.includes(userRole)
-      })
+  // Always filter navigation items consistently
+  const filteredNavigationItems = navigationItems.filter(item => {
+    if (!item.allowedRoles) return true
+    return item.allowedRoles.includes(userRole)
+  })
 
   const toggleSubmenu = (title: string) => {
     if (isCollapsed) {
@@ -345,6 +343,10 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
   // On desktop (lg:static), respect the isCollapsed state  
   const shouldShowText = !isCollapsed || isOpen
 
+  // Don't render sidebar until mounted to prevent hydration mismatch
+  if (!mounted) {
+    return null
+  }
   return (
     <>
       {/* Overlay for mobile */}
@@ -473,8 +475,7 @@ export function Sidebar({ isOpen, onClose, isCollapsed, onToggleCollapse }: Side
 
           {/* Sidebar footer - User Profile */}
           <div className="border-t">
-            {(!mounted || status === 'loading') ? (
-              // Show neutral loading state during SSR to prevent hydration mismatch
+            {status === 'loading' ? (
               shouldShowText && (
                 <div className="p-4">
                   <div className="flex items-center space-x-3 mb-3">

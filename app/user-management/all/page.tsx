@@ -44,6 +44,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 // import { CreateUserDialog } from "@/components/user-management/create-user-dialog"
+import { FirebaseSetupNotice } from "@/components/ui/firebase-setup-notice"
 import { Skeleton } from "@/components/ui/skeleton"
 import { DataPagination } from "@/components/ui/data-pagination"
 import { usePaginatedUsers } from "@/hooks/usePaginatedUsers"
@@ -217,6 +218,21 @@ const getRoleColor = (role: string) => {
   const uniqueRoles = Array.from(new Set(users.map(user => user.role)))
 
   if (error) {
+    // Check if this is a Firebase configuration error
+    if (error.includes('Firebase not configured') || error.includes('HTTP error! status: 500')) {
+      return (
+        <MainLayout>
+          <div className="container mx-auto space-y-6">
+            <FirebaseSetupNotice 
+              error={error}
+              onRetry={refreshUsers}
+            />
+          </div>
+        </MainLayout>
+      )
+    }
+    
+    // General error fallback
     return (
       <MainLayout>
         <div className="container mx-auto space-y-6">

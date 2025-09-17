@@ -1,7 +1,7 @@
 // Advanced cache invalidation mechanisms and event-driven cache management
-import { CacheManager, CacheInvalidator } from './cache-manager'
-import { ApiResponseCache } from './api-response-cache'
-import { CacheMonitor } from './cache-monitor'
+import { CacheManager, CacheInvalidator } from '../../../../lib/cache-manager'
+import { ApiResponseCache } from '../../../../lib/api-response-cache'
+import { CacheMonitor } from '../../../../lib/cache-monitor'
 
 export interface CacheInvalidationEvent {
   type: 'user' | 'data' | 'api' | 'global'

@@ -1,125 +1,75 @@
 "use client"
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, ExternalLink, Copy } from "lucide-react"
-import { useState } from "react"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { AlertTriangle, ExternalLink, RefreshCw } from "lucide-react"
 
-export function FirebaseSetupNotice() {
-  const [copied, setCopied] = useState(false)
+interface FirebaseSetupNoticeProps {
+  error?: string
+  onRetry?: () => void
+}
 
-  const envExample = `NEXT_PUBLIC_FIREBASE_API_KEY=your_api_key_here
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_project.firebaseapp.com
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_project_id
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_project.appspot.com
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_sender_id
-NEXT_PUBLIC_FIREBASE_APP_ID=your_app_id`
-
-  const copyToClipboard = () => {
-    navigator.clipboard.writeText(envExample)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2000)
-  }
-
+export function FirebaseSetupNotice({ error, onRetry }: FirebaseSetupNoticeProps) {
   return (
-    <div className="container mx-auto p-6 space-y-6">
-      <Alert className="border-orange-200 bg-orange-50">
-        <AlertTriangle className="h-4 w-4 text-orange-600" />
-        <AlertDescription className="text-orange-800">
-          Firebase is not configured. Please set up your Firebase project to use the user management system.
-        </AlertDescription>
-      </Alert>
-
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ExternalLink className="h-5 w-5" />
-            Firebase Setup Instructions
-          </CardTitle>
-          <CardDescription>
-            Follow these steps to configure Firebase for the user management system
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <h4 className="font-medium">1. Create a Firebase Project</h4>
-            <p className="text-sm text-muted-foreground">
-              Go to the <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Firebase Console</a> and create a new project.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium">2. Enable Firestore Database</h4>
-            <p className="text-sm text-muted-foreground">
-              In your Firebase project, go to Firestore Database and create a database in production mode.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium">3. Get Your Configuration</h4>
-            <p className="text-sm text-muted-foreground">
-              Go to Project Settings → General → Your apps → Web app and copy the configuration.
-            </p>
-          </div>
-
-          <div className="space-y-2">
-            <h4 className="font-medium">4. Create Environment File</h4>
-            <p className="text-sm text-muted-foreground">
-              Create a <code className="bg-gray-100 px-1 py-0.5 rounded text-sm">.env.local</code> file in your project root with the following variables:
-            </p>
-            <div className="relative">
-              <pre className="bg-gray-100 p-4 rounded-md text-sm overflow-x-auto">
-                <code>{envExample}</code>
-              </pre>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={copyToClipboard}
-                className="absolute top-2 right-2"
-              >
-                <Copy className="h-4 w-4 mr-1" />
-                {copied ? "Copied!" : "Copy"}
-              </Button>
+    <Card className="max-w-2xl mx-auto mt-8">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-amber-500" />
+          Firebase Configuration Required
+        </CardTitle>
+        <CardDescription>
+          The application requires Firebase to be configured to access user data.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {error && (
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription className="text-sm">
+              {error}
+            </AlertDescription>
+          </Alert>
+        )}
+        
+        <Alert>
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Quick Fix</AlertTitle>
+          <AlertDescription>
+            <div className="mt-2 space-y-2">
+              <p>To see the app working with demo data, add this to your <code className="bg-muted px-1 rounded">.env.local</code> file:</p>
+              <pre className="bg-muted p-2 rounded text-sm">USE_DEMO_DATA=true</pre>
+              <p>Then restart the development server.</p>
             </div>
-          </div>
+          </AlertDescription>
+        </Alert>
 
-          <div className="space-y-2">
-            <h4 className="font-medium">5. Set Up Firestore Security Rules</h4>
-            <p className="text-sm text-muted-foreground">
-              In Firestore → Rules, set up appropriate security rules for your users collection.
-            </p>
-            <div className="bg-gray-100 p-4 rounded-md text-sm">
-              <code>
-                {`rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /users/{userId} {
-      allow read, write: if request.auth != null;
-    }
-  }
-}`}
-              </code>
-            </div>
-          </div>
+        <div className="space-y-3">
+          <h4 className="font-medium">Setup Steps:</h4>
+          <ol className="list-decimal list-inside space-y-1 text-sm text-muted-foreground">
+            <li>Create a Firebase project at <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Firebase Console</a></li>
+            <li>Copy <code className="bg-muted px-1 rounded">.env.example</code> to <code className="bg-muted px-1 rounded">.env.local</code></li>
+            <li>Fill in your Firebase configuration in <code className="bg-muted px-1 rounded">.env.local</code></li>
+            <li>Restart the development server</li>
+          </ol>
+        </div>
 
-          <div className="space-y-2">
-            <h4 className="font-medium">6. Restart Your Development Server</h4>
-            <p className="text-sm text-muted-foreground">
-              After adding the environment variables, restart your Next.js development server.
-            </p>
-          </div>
-
-          <div className="pt-4 border-t">
-            <Button asChild>
-              <a href="https://console.firebase.google.com" target="_blank" rel="noopener noreferrer">
-                <ExternalLink className="h-4 w-4 mr-2" />
-                Open Firebase Console
-              </a>
+        <div className="flex gap-2">
+          {onRetry && (
+            <Button onClick={onRetry} variant="outline" size="sm">
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Try Again
             </Button>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+          )}
+          <Button asChild variant="outline" size="sm">
+            <a href="/FIREBASE_SETUP.md" target="_blank" rel="noopener noreferrer">
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Setup Guide
+            </a>
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   )
 }

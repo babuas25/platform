@@ -1,6 +1,6 @@
 // API response caching middleware with TTL strategies
 import { NextRequest, NextResponse } from 'next/server'
-import { CacheManager, CacheKeyGenerator, CacheConfigs } from './cache-manager'
+import { CacheManager, CacheKeyGenerator, CacheConfigs } from '../cache/cache-manager'
 
 export interface ApiCacheConfig {
   ttl: number // Time to live in milliseconds

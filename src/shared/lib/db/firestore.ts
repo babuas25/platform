@@ -16,7 +16,7 @@ import {
   DocumentData
 } from 'firebase/firestore'
 import { db } from './firebase'
-import { User, UserFilters, UserStats, CreateUserData, UpdateUserData } from './types/user'
+import { User, UserFilters, UserStats, CreateUserData, UpdateUserData } from '../../types/user'
 const USERS_COLLECTION = 'users'
 
 // Helper function to convert Firestore timestamp to string

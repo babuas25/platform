@@ -1,6 +1,6 @@
 // Cache warm-up utilities for frequently accessed data
-import { CacheManager, CacheKeyGenerator, CacheConfigs } from './cache-manager'
-import { getAdminDb } from './firebase-admin'
+import { CacheManager, CacheKeyGenerator, CacheConfigs } from '../../../../lib/cache-manager'
+import { getAdminDb } from '../../../../lib/firebase-admin'
 
 interface UserData {
   id?: string

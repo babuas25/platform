@@ -187,6 +187,30 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if Firebase is configured
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    const useDemoData = process.env.USE_DEMO_DATA === 'true'
+    
+    if (!projectId) {
+      console.error('❌ Firebase not configured: NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing')
+      return NextResponse.json({
+        error: 'Firebase not configured',
+        message: 'Please configure Firebase environment variables in .env.local',
+        details: 'Missing NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+      }, { status: 500 })
+    }
+    
+    if (!serviceAccountKey && !isDevelopment) {
+      console.error('❌ Firebase Admin SDK not configured: FIREBASE_SERVICE_ACCOUNT_KEY is missing')
+      return NextResponse.json({
+        error: 'Firebase Admin SDK not configured',
+        message: 'Please configure FIREBASE_SERVICE_ACCOUNT_KEY in .env.local for production',
+        details: 'Missing FIREBASE_SERVICE_ACCOUNT_KEY'
+      }, { status: 500 })
+    }
+
     const session = await getServerSession(authOptions as any) as any
     
     if (!session?.user) {
@@ -203,6 +227,12 @@ export async function GET(request: NextRequest) {
         manageableRoles,
         currentUserRole
       })
+    }
+    
+    // If demo data is enabled and Firebase is not fully configured, return demo data
+    if (useDemoData || (!serviceAccountKey && isDevelopment)) {
+      console.log('🎭 Using demo data mode')
+      return getDemoUsersResponse(request)
     }
 
     // Get pagination parameters
@@ -449,6 +479,21 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching users:', error)
     
+    // If Firebase is not configured, provide a helpful message
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    if (!projectId) {
+      return NextResponse.json({
+        error: 'Firebase not configured',
+        message: 'Please configure Firebase environment variables',
+        instructions: [
+          '1. Copy .env.example to .env.local',
+          '2. Set up a Firebase project at https://console.firebase.google.com',
+          '3. Fill in your Firebase configuration in .env.local',
+          '4. Restart the development server'
+        ]
+      }, { status: 500 })
+    }
+    
     // If Firebase is not available, return sample data for SuperAdmin
     if (error instanceof Error && error.message.includes('Firebase Admin SDK')) {
       console.log('Returning sample data due to Firebase unavailability')
@@ -478,9 +523,157 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Failed to fetch users',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Please check your Firebase configuration'
       },
       { status: 500 }
     )
   }
+}
+
+// Demo data function for when Firebase is not configured
+function getDemoUsersResponse(request: NextRequest) {
+  const { searchParams } = new URL(request.url)
+  
+  // Get pagination parameters
+  const paginationParams = validatePaginationParams({
+    page: searchParams.get('page'),
+    limit: searchParams.get('limit'),
+    cursor: searchParams.get('cursor')
+  })
+  
+  // Get filter parameters
+  const filters = {
+    role: searchParams.get('role'),
+    category: searchParams.get('category'),
+    subcategory: searchParams.get('subcategory'),
+    status: searchParams.get('status'),
+    subscription: searchParams.get('subscription'),
+    department: searchParams.get('department'),
+    search: searchParams.get('search')
+  }
+
+  // Demo users data
+  const demoUsers = [
+    {
+      id: 'demo-superadmin-1',
+      name: 'John SuperAdmin',
+      email: 'superadmin@example.com',
+      role: 'SuperAdmin',
+      category: 'Admin',
+      subcategory: 'SuperAdmin',
+      status: 'Active',
+      createdAt: new Date('2024-01-01').toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
+    },
+    {
+      id: 'demo-admin-1',
+      name: 'Jane Admin',
+      email: 'admin@example.com',
+      role: 'Admin',
+      category: 'Admin',
+      subcategory: 'Admin',
+      status: 'Active',
+      createdAt: new Date('2024-01-02').toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLogin: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString() // 1 day ago
+    },
+    {
+      id: 'demo-support-1',
+      name: 'Bob Support',
+      email: 'support@example.com',
+      role: 'Support',
+      category: 'Staff',
+      subcategory: 'Support',
+      status: 'Active',
+      department: 'Tier 1 Support',
+      createdAt: new Date('2024-01-03').toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLogin: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString() // 2 hours ago
+    },
+    {
+      id: 'demo-user-1',
+      name: 'Alice User',
+      email: 'user@example.com',
+      role: 'User',
+      category: 'Users',
+      subcategory: 'publicuser',
+      status: 'Pending',
+      createdAt: new Date('2024-01-04').toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLogin: null
+    },
+    {
+      id: 'demo-agent-1',
+      name: 'Charlie Agent',
+      email: 'agent@example.com',
+      role: 'Distributor',
+      category: 'Agent',
+      subcategory: 'Distributor',
+      status: 'Active',
+      createdAt: new Date('2024-01-05').toISOString(),
+      updatedAt: new Date().toISOString(),
+      lastLogin: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString() // 1 week ago
+    }
+  ]
+
+  // Apply filters
+  let filteredUsers = demoUsers
+  
+  if (filters.role) {
+    filteredUsers = filteredUsers.filter(user => user.role === filters.role)
+  }
+  if (filters.category) {
+    filteredUsers = filteredUsers.filter(user => user.category === filters.category)
+  }
+  if (filters.status) {
+    filteredUsers = filteredUsers.filter(user => user.status === filters.status)
+  }
+  if (filters.search) {
+    const searchTerm = filters.search.toLowerCase()
+    filteredUsers = filteredUsers.filter(user => 
+      user.name.toLowerCase().includes(searchTerm) ||
+      user.email.toLowerCase().includes(searchTerm)
+    )
+  }
+
+  const total = filteredUsers.length
+  
+  // Apply pagination
+  const startIndex = (paginationParams.page - 1) * paginationParams.limit
+  const endIndex = startIndex + paginationParams.limit
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex)
+
+  // Calculate pagination info
+  const pagination = calculatePagination(
+    paginationParams.page,
+    paginationParams.limit,
+    total,
+    false,
+    paginatedUsers.length > 0 ? paginatedUsers[paginatedUsers.length - 1].id : undefined,
+    paginatedUsers.length > 0 ? paginatedUsers[0].id : undefined
+  )
+  
+  // Create paginated response
+  const response: PaginatedResponse<any> = {
+    data: paginatedUsers,
+    pagination,
+    filters: {
+      role: filters.role || undefined,
+      category: filters.category || undefined,
+      status: filters.status || undefined,
+      search: filters.search || undefined,
+      department: filters.department || undefined,
+      subscription: filters.subscription || undefined
+    }
+  }
+  
+  return NextResponse.json(response, {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'X-Demo-Mode': 'true',
+      'X-Demo-Message': 'Using demo data - Firebase not configured'
+    }
+  })
 }

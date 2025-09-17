@@ -1,4 +1,4 @@
-import { CreateUserData } from './types/user'
+import { CreateUserData } from '../../types/user'
 
 export const sampleUsers: CreateUserData[] = [
   // SuperAdmin users

@@ -7,6 +7,21 @@ import { CacheManager, CacheKeyGenerator, CacheConfigs } from '@/lib/cache-manag
 
 export async function GET(request: NextRequest) {
   try {
+    // Check if Firebase is configured
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY
+    const isDevelopment = process.env.NODE_ENV === 'development'
+    const useDemoData = process.env.USE_DEMO_DATA === 'true'
+    
+    if (!projectId) {
+      console.error('❌ Firebase not configured: NEXT_PUBLIC_FIREBASE_PROJECT_ID is missing')
+      return NextResponse.json({
+        error: 'Firebase not configured',
+        message: 'Please configure Firebase environment variables in .env.local',
+        details: 'Missing NEXT_PUBLIC_FIREBASE_PROJECT_ID'
+      }, { status: 500 })
+    }
+    
     const session = await getServerSession(authOptions as any) as any
     
     if (!session?.user) {
@@ -14,6 +29,12 @@ export async function GET(request: NextRequest) {
     }
 
     const currentUserRole = (session.user as any)?.role as UserRole
+    
+    // If demo data is enabled and Firebase is not fully configured, return demo stats
+    if (useDemoData || (!serviceAccountKey && isDevelopment)) {
+      console.log('🎭 Using demo stats mode')
+      return getDemoStatsResponse()
+    }
 
     // Try to get from cache first
     const cacheKey = CacheKeyGenerator.userStats()
@@ -101,6 +122,21 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Error fetching user stats:', error)
     
+    // If Firebase is not configured, provide a helpful message
+    const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID
+    if (!projectId) {
+      return NextResponse.json({
+        error: 'Firebase not configured',
+        message: 'Please configure Firebase environment variables',
+        instructions: [
+          '1. Copy .env.example to .env.local',
+          '2. Set up a Firebase project at https://console.firebase.google.com',
+          '3. Fill in your Firebase configuration in .env.local',
+          '4. Restart the development server'
+        ]
+      }, { status: 500 })
+    }
+    
     // If Firebase is not available, return sample stats
     if (error instanceof Error && error.message.includes('Firebase Admin SDK')) {
       console.log('Returning sample stats due to Firebase unavailability')
@@ -128,9 +164,48 @@ export async function GET(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Failed to fetch user statistics',
-        details: error instanceof Error ? error.message : 'Unknown error'
+        details: error instanceof Error ? error.message : 'Unknown error',
+        message: 'Please check your Firebase configuration'
       },
       { status: 500 }
     )
   }
+}
+
+// Demo stats function for when Firebase is not configured
+function getDemoStatsResponse() {
+  const demoStats = {
+    total: 5,
+    active: 4,
+    inactive: 0,
+    pending: 1,
+    suspended: 0,
+    recentUsers: 5,
+    roleStats: {
+      'SuperAdmin': 1,
+      'Admin': 1,
+      'Support': 1,
+      'User': 1,
+      'Distributor': 1
+    },
+    categoryStats: {
+      'Admin': 2,
+      'Staff': 1,
+      'Users': 1,
+      'Agent': 1
+    },
+    lastUpdated: new Date().toISOString(),
+    _meta: {
+      mode: 'demo',
+      message: 'Using demo data - Firebase not configured'
+    }
+  }
+  
+  return NextResponse.json(demoStats, {
+    headers: {
+      'Cache-Control': 'no-cache',
+      'X-Demo-Mode': 'true',
+      'X-Demo-Message': 'Using demo stats - Firebase not configured'
+    }
+  })
 }
